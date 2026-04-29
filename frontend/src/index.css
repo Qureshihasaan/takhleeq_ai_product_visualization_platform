@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primaryColor: #EBB924;
+  --color-secondaryColor: #1a1a1a;
+  --color-accentColor: #f59e0b;
+  --color-successColor: #10b981;
+  --color-warningColor: #f59e0b;
+  --color-errorColor: #ef4444;
+  --color-infoColor: #3b82f6;
+  --color-backgroundColor: #000000;
+  --color-surfaceColor: #18181b; /* zinc-900 */
+  --color-textColorMain: #ffffff;
+  --color-textColorMuted: #a1a1aa; /* zinc-400 */
+  --color-textColorInverse: #000000;
+  --color-borderColor: #27272a; /* zinc-800 */
+  --color-focusRingColor: #EBB924;
+
+  /* Spacing */
+  --spacing-spacingUnit: 0.25rem;
+  --spacing-marginSmall: 0.5rem;
+  --spacing-marginMedium: 1rem;
+  --spacing-marginLarge: 2rem;
+  --spacing-paddingSmall: 0.5rem;
+  --spacing-paddingMedium: 1rem;
+  --spacing-paddingLarge: 2rem;
+
+  /* Borders */
+  --radius-borderRadiusSm: 0.25rem;
+  --radius-borderRadiusMd: 0.75rem;
+  --radius-borderRadiusLg: 1.5rem;
+  --radius-borderRadiusFull: 9999px;
+
+  /* Typography */
+  --font-fontFamilyBody: 'Montserrat', sans-serif;
+  --font-fontFamilyHeading: 'Montserrat', sans-serif;
+  --font-fontFamilyCode: monospace;
+  
+  --text-fontSizeXs: 0.75rem;
+  --text-fontSizeSm: 0.875rem;
+  --text-fontSizeBase: 1rem;
+  --text-fontSizeLg: 1.125rem;
+  --text-fontSizeXl: 1.25rem;
+
+  --font-weight-fontWeightLight: 300;
+  --font-weight-fontWeightRegular: 400;
+  --font-weight-fontWeightMedium: 500;
+  --font-weight-fontWeightBold: 700;
+
+  --tracking-letterSpacing: 0.025em;
+
+  /* Shadows */
+  --shadow-boxShadowLow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-boxShadowMedium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-boxShadowHigh: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+:root {
+  /* Vanilla CSS variables for arbitrary things that don't map to tailwind utilities nicely out of the box */
+  --lineHeightTight: 1.25;
+  --lineHeightNormal: 1.5;
+  --lineHeightLoose: 2;
+  --borderWidth: 1px;
+  --transitionDuration: 300ms;
+  --transitionTiming: ease-in-out;
+  --zIndexDropdown: 40;
+  --zIndexModal: 50;
+  --zIndexTooltip: 60;
+  --maxWidthContainer: 80rem; 
+  --scrollbarWidth: 8px;
+  --scrollbarTrackColor: var(--color-backgroundColor);
+  --scrollbarThumbColor: var(--color-borderColor);
+  --disabledOpacity: 0.5;
+}
+
+@layer base {
+  html, body {
+    @apply font-fontFamilyBody antialiased bg-backgroundColor text-textColorMain;
+    line-height: var(--lineHeightNormal);
+  }
+
+  /* Headings standard base */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-fontFamilyHeading font-fontWeightBold text-textColorMain;
+    line-height: var(--lineHeightTight);
+    letter-spacing: var(--letterSpacing);
+  }
+
+  h1 { @apply text-4xl; }
+  h2 { @apply text-3xl; }
+  h3 { @apply text-2xl; }
+  h4 { @apply text-xl; }
+  h5 { @apply text-lg; }
+  h6 { @apply text-base; }
+}
+
+/* Scrollbar setup */
+::-webkit-scrollbar {
+  width: var(--scrollbarWidth);
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbarTrackColor); 
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbarThumbColor); 
+  border-radius: var(--radius-borderRadiusFull);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primaryColor); 
+}
