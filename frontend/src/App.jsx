@@ -8,6 +8,7 @@ import SignupPage from "./components/pages/SignupPage";
 import StudioPage from "./components/pages/StudioPage";
 import CartPage from "./components/pages/CartPage";
 import CategoriesPage from "./components/pages/CategoriesPage";
+import ProductDetailsPage from "./components/pages/ProductDetailsPage";
 import MyDesignsPage from "./components/pages/MyDesignsPage";
 import NotificationsPage from "./components/pages/NotificationsPage";
 import SettingsPage from "./components/pages/SettingsPage";
@@ -35,7 +36,7 @@ const App = () => {
             <Route path="settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
             <Route path="contact" element={<ContactPage />} />
             {/* Future microservice routes can be nested here */}
-            {/* <Route path="products/:id" element={<ProductDetails />} /> */}
+            <Route path="products/:id" element={<ProductDetailsPage />} />
           </Route>
           {/* Authentication routes */}
           <Route path="/login" element={<LoginPage />} />

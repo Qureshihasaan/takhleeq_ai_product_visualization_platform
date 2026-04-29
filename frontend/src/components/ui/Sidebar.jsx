@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -16,42 +16,21 @@ import {
   LogIn,
   LogOut,
 } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../../store/authSlice";
 import CartIcon from "./CartIcon";
-import { authService } from "../../services/authService";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const authStatus = authService.isAuthenticated();
-      setIsAuthenticated(authStatus);
-    };
+  // Pull auth state directly from Redux — single source of truth
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-    checkAuth();
-    // Listen for storage changes (for cross-tab authentication)
-    window.addEventListener("storage", checkAuth);
-    return () => window.removeEventListener("storage", checkAuth);
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-      authService.removeAuthToken();
-      setIsAuthenticated(false);
-      setCurrentUser(null);
-      navigate("/");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      // Force logout even if API call fails
-      authService.removeAuthToken();
-      setIsAuthenticated(false);
-      setCurrentUser(null);
-      navigate("/");
-    }
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/");
   };
 
   const NavSection = ({ title, items }) => (
@@ -92,10 +71,15 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               </span>
             )}
           </Link>
-        )})}
+        )})
+        }
       </div>
     </div>
   );
+
+  // Derive a display name from the user object
+  const displayName = user?.username || user?.email?.split("@")[0] || "Account";
+  const displayRole = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "";
 
   return (
     <aside
@@ -157,33 +141,40 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         />
       </div>
 
+      {/* User / Auth Section */}
       <div className="p-paddingMedium border-t border-borderColor">
-        {isAuthenticated ? (
-          <div
-            className={`flex items-center gap-marginSmall ${isCollapsed ? "justify-center" : ""}`}
-          >
-            <div className="w-10 h-10 rounded-borderRadiusFull bg-surfaceColor flex items-center justify-center text-primaryColor shrink-0">
-              <User size={20} />
+        {isAuthenticated && user ? (
+          <div className={`flex items-center gap-marginSmall ${isCollapsed ? "justify-center" : ""}`}>
+            <div className="w-10 h-10 rounded-borderRadiusFull bg-primaryColor/20 flex items-center justify-center text-primaryColor shrink-0 font-fontWeightBold text-fontSizeLg">
+              {displayName.charAt(0).toUpperCase()}
             </div>
             {!isCollapsed && (
-              <div className="duration-[var(--transitionDuration)] animate-in fade-in duration-[var(--transitionDuration)]">
+              <div className="duration-[var(--transitionDuration)] animate-in fade-in duration-[var(--transitionDuration)] overflow-hidden">
                 <p className="text-textColorMain text-fontSizeSm font-fontWeightBold truncate">
-                  {currentUser?.name || "User"}
+                  {displayName}
                 </p>
+                {displayRole && (
+                  <p className="text-textColorMuted text-fontSizeXs truncate capitalize">{displayRole}</p>
+                )}
                 <button
                   onClick={handleLogout}
-                  className="text-textColorMuted text-fontSizeXs truncate hover:text-primaryColor transition-colors flex items-center gap-1"
+                  className="text-textColorMuted text-fontSizeXs truncate hover:text-primaryColor transition-colors flex items-center gap-1 mt-0.5"
                 >
-                  <LogOut size={14} />
+                  <LogOut size={12} />
                   Logout
                 </button>
               </div>
             )}
+            {isCollapsed && (
+              <button
+                onClick={handleLogout}
+                title="Logout"
+                className="sr-only"
+              />
+            )}
           </div>
         ) : (
-          <div
-            className={`flex flex-col gap-2 ${isCollapsed ? "items-center" : ""}`}
-          >
+          <div className={`flex flex-col gap-2 ${isCollapsed ? "items-center" : ""}`}>
             <Link
               to="/login"
               className={`flex items-center gap-2 px-3 py-2 rounded-borderRadiusMd bg-surfaceColor hover:bg-primaryColor hover:text-textColorInverse transition-all text-fontSizeSm ${

@@ -44,6 +44,19 @@ export const productService = {
   },
 
   /**
+   * Get product by ID
+   */
+  getProductById: async (productId) => {
+    try {
+      const response = await productsApi.get(`/product/${productId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch product ${productId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * Update a product
    */
   updateProduct: async (productId, productData) => {
