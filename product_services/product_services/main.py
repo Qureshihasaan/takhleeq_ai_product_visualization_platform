@@ -3,7 +3,7 @@ import base64
 import json
 import logging
 from contextlib import asynccontextmanager
-from typing import Annotated, AsyncGenerator, Optional
+from typing import Annotated, AsyncGenerator, List, Optional
 
 from aiokafka import AIOKafkaProducer
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
@@ -80,6 +80,7 @@ async def product_service(
     session: Annotated[Session, Depends(get_session)],
     token_data: Annotated[dict, Depends(validate_role(["seller", "admin"]))],
     file: Optional[UploadFile] = File(None),
+    category: Optional[str] = Form(None),
 ) -> Product:
     """Create a new product with an optional image upload (multipart form)."""
 
@@ -96,6 +97,7 @@ async def product_service(
         product_quantity=product_quantity,
         price=price,
         product_image=product_image_b64,
+        category=category,
     )
 
     session.add(product)
@@ -111,6 +113,19 @@ async def product_service(
         print("Error Sending to Kafka", e)
 
     return product
+
+
+@app.get("/categories", response_model=List[str])
+async def get_categories(
+    session: Annotated[Session, Depends(get_session)],
+    token_data: Annotated[dict, Depends(validate_role(["seller", "admin", "buyer"]))],
+):
+    """Return a deduplicated, sorted list of all product categories in the database."""
+    products = session.exec(select(Product)).all()
+    categories = sorted(
+        {p.category for p in products if p.category}
+    )
+    return categories
 
 
 @app.get("/product/", response_model=list[Product])

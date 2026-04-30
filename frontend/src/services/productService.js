@@ -7,20 +7,23 @@ export const productService = {
   createProduct: async (productData) => {
     try {
       const formData = new FormData();
-      formData.append("Product_id", productData.product_id || 0);
-      formData.append("Product_name", productData.Product_name || "");
-      formData.append("Product_details", productData.Product_details || "");
+      formData.append("Product_id", productData.product_id || productData.Product_id || 0);
+      formData.append("Product_name", productData.Product_name || productData.product_name || "");
+      formData.append("Product_details", productData.Product_details || productData.product_details || "");
       formData.append("product_quantity", productData.product_quantity || 0);
       formData.append("price", productData.price || 1);
-      
-      // If there is an actual file object
-      if (productData.file instanceof File) {
-          formData.append("file", productData.file);
+
+      if (productData.category) {
+        formData.append("category", productData.category);
+      }
+
+      if (productData.file) {
+        formData.append("file", productData.file);
       }
 
       const response = await productsApi.post("/product", formData, {
         headers: {
-          "Content-Type": "multipart/form-data"
+          'Content-Type': 'multipart/form-data'
         }
       });
       return response.data;
@@ -39,19 +42,6 @@ export const productService = {
       return response.data;
     } catch (error) {
       console.error("Failed to fetch products:", error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get product by ID
-   */
-  getProductById: async (productId) => {
-    try {
-      const response = await productsApi.get(`/product/${productId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to fetch product ${productId}:`, error);
       throw error;
     }
   },
@@ -94,6 +84,19 @@ export const productService = {
       return response.data;
     } catch (error) {
       console.error(`Failed to get product image ${productId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get all distinct product categories
+   */
+  getAllCategories: async () => {
+    try {
+      const response = await productsApi.get("/categories");
+      return response.data; // string[]
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
       throw error;
     }
   },

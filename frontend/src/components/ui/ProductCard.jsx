@@ -1,9 +1,7 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 const ProductCard = ({ 
-  id,
   image, 
   title, 
   tags = [], 
@@ -18,21 +16,11 @@ const ProductCard = ({
       <div className="relative h-[250px] bg-backgroundColor flex items-center justify-center overflow-hidden p-paddingMedium">
         
         {/* Product Image - Full Visibility */}
-        {id ? (
-          <Link to={`/products/${id}`} className="absolute inset-x-0 inset-y-paddingMedium z-0">
-            <img 
-              src={image} 
-              alt={title} 
-              className="w-full h-full object-contain"
-            />
-          </Link>
-        ) : (
-          <img 
-            src={image} 
-            alt={title} 
-            className="absolute inset-x-0 inset-y-paddingMedium w-full h-[calc(100%-var(--spacing-paddingLarge))] object-contain z-0"
-          />
-        )}
+        <img 
+          src={image} 
+          alt={title} 
+          className="absolute inset-x-0 inset-y-paddingMedium w-full h-[calc(100%-var(--spacing-paddingLarge))] object-contain z-0"
+        />
 
         {/* Heart Icon - Top Right, Subtle */}
         <button 
@@ -48,7 +36,7 @@ const ProductCard = ({
         
         <div className="space-y-paddingSmall">
           <h3 className="line-clamp-1 mb-1 text-textColorMain" title={title}>
-            {id ? <Link to={`/products/${id}`} className="hover:text-primaryColor transition-colors">{title}</Link> : title}
+            {title}
           </h3>
 
           {/* Dynamic Tags */}

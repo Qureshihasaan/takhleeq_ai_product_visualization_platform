@@ -8,7 +8,6 @@ import SignupPage from "./components/pages/SignupPage";
 import StudioPage from "./components/pages/StudioPage";
 import CartPage from "./components/pages/CartPage";
 import CategoriesPage from "./components/pages/CategoriesPage";
-import ProductDetailsPage from "./components/pages/ProductDetailsPage";
 import MyDesignsPage from "./components/pages/MyDesignsPage";
 import NotificationsPage from "./components/pages/NotificationsPage";
 import SettingsPage from "./components/pages/SettingsPage";
@@ -28,7 +27,11 @@ const App = () => {
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<LandingPage />} />
-            <Route path="studio" element={<AuthGuard><StudioPage /></AuthGuard>} />
+            <Route path="studio" element={
+              <AuthGuard>
+                <StudioPage />
+                </AuthGuard>}
+                 />
             <Route path="cart" element={<AuthGuard><CartPage /></AuthGuard>} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="my-designs" element={<AuthGuard><MyDesignsPage /></AuthGuard>} />
@@ -36,7 +39,7 @@ const App = () => {
             <Route path="settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
             <Route path="contact" element={<ContactPage />} />
             {/* Future microservice routes can be nested here */}
-            <Route path="products/:id" element={<ProductDetailsPage />} />
+            {/* <Route path="products/:id" element={<ProductDetails />} /> */}
           </Route>
           {/* Authentication routes */}
           <Route path="/login" element={<LoginPage />} />

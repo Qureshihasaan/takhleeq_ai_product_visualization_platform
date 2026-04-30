@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { authService } from '../../services/authService';
@@ -27,6 +27,8 @@ const LoginPage = () => {
     setError('');
 
     try {
+      console.log(formData);
+      
       const response = await authService.login({
         username: formData.username,
         email: formData.email,

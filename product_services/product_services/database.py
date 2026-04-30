@@ -9,6 +9,7 @@ class Product(SQLModel , table = True):
     product_quantity : int = Field(default=0)
     price : float = Field(gt=0)
     product_image : Optional[str] = Field(default=None, description="Base64-encoded product image")
+    category : Optional[str] = Field(default=None, description="Product category (e.g. t-shirt, mug, phone-case)")
 
 
 connection_strings = str(setting.PRODUCT_SERVICE_DATABASE_URL).replace(

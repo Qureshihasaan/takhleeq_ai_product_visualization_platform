@@ -12,4 +12,4 @@ COPY . .
 EXPOSE 5173
 
 # Run Vite in host mode so Docker can see it
-CMD ["npm", "run", "dev",  "--host"]
+CMD ["npm", "run", "dev", "--", "--host"]

@@ -7,12 +7,13 @@ export const authService = {
   login: async (userData) => {
     try {
       const formData = new URLSearchParams();
-      formData.append("username", userData.username || "");
-      formData.append("password", userData.plain_password || "");
+      // FastAPI OAuth2PasswordRequestForm expects username and password fields
+      formData.append('username', userData.username || userData.email || "");
+      formData.append('password', userData.plain_password || userData.password || "");
 
       const response = await usersApi.post("/login", formData, {
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
       });
       return response.data;
@@ -27,6 +28,8 @@ export const authService = {
    */
   register: async (userData) => {
     try {
+      console.log(userData);
+      
       const payload = {
         username: userData.username || "",
         email: userData.email || "",

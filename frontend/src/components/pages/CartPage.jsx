@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
 import { useSelector } from "react-redux";
@@ -7,93 +7,86 @@ import OrderSummary from "../ui/OrderSummary";
 import ProductCard from "../ui/ProductCard";
 import { orderService } from "../../services/orderService";
 import { paymentService } from "../../services/paymentService";
-import { productService } from "../../services/productService";
 
-const PRODUCTS_API_URL =
-  import.meta.env.VITE_PRODUCTS_API_URL || "http://localhost:8000";
+// Mock data for recommended products
+const recommendedProducts = [
+  {
+    id: "rec1",
+    name: "Abstract Sunset",
+    price: 89.99,
+    image: "/api/placeholder/300/300",
+    tags: ["Abstract", "AI Generated"],
+    description: "Beautiful abstract sunset with vibrant colors",
+  },
+  {
+    id: "rec2",
+    name: "Nature's Beauty",
+    price: 124.99,
+    image: "/api/placeholder/300/300",
+    tags: ["Nature", "Landscape"],
+    description: "Stunning natural landscape photography",
+  },
+  {
+    id: "rec3",
+    name: "Urban Dreams",
+    price: 99.99,
+    image: "/api/placeholder/300/300",
+    tags: ["Urban", "Modern"],
+    description: "Contemporary urban architecture art",
+  },
+  {
+    id: "rec4",
+    name: "Cosmic Journey",
+    price: 149.99,
+    image: "/api/placeholder/300/300",
+    tags: ["Space", "Abstract"],
+    description: "Mysterious cosmic exploration artwork",
+  },
+];
 
 const CartPage = () => {
   const { items, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
-  const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector(state => state.auth);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [paymentStatus, setPaymentStatus] = React.useState(null);
 
-  // Live recommended products
-  const [recommended, setRecommended] = useState([]);
-  const [recLoading, setRecLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchRecommended = async () => {
-      try {
-        const data = await productService.getAllProducts();
-        // Show up to 4 products not already in the cart
-        const cartIds = new Set(items.map((i) => String(i.id)));
-        const filtered = (data || [])
-          .filter((p) => !cartIds.has(String(p.Product_id)))
-          .slice(0, 4)
-          .map((p) => ({
-            id: p.Product_id,
-            title: p.Product_name,
-            description: p.Product_details || "",
-            price: p.price,
-            image: `${PRODUCTS_API_URL}/product/${p.Product_id}/image`,
-            tags: [p.product_type || "Custom"].filter(Boolean),
-          }));
-        setRecommended(filtered);
-      } catch (err) {
-        console.error("Failed to fetch recommended products:", err);
-      } finally {
-        setRecLoading(false);
-      }
-    };
-    fetchRecommended();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+  // Calculate order totals
   const subtotal = totalPrice;
   const shipping = subtotal > 100 ? 0 : 9.99;
-  const tax = subtotal * 0.08;
+  const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + shipping + tax;
-
-  const { addToCart } = useCart();
-
-  const handleAddRecommended = (product) => {
-    addToCart({
-      id: product.id,
-      name: product.title,
-      price: product.price,
-      image: product.image,
-      quantity: 1,
-    });
-  };
 
   const handleCheckout = async () => {
     if (!user) {
       alert("Please login to checkout");
       return;
     }
-
+    
     setIsProcessing(true);
-    setPaymentStatus("Creating Orders...");
+    setPaymentStatus("Creating Order...");
     try {
+      // 1. Create orders and payments per item
+      setPaymentStatus("Creating Orders...");
+      
       const paymentPromises = items.map(async (item) => {
         const orderPayload = {
           order_id: 0,
-          user_id: user.user_id || 0,
+          user_id: user.user_id || 0, // Fallback if user_id is not named this way
           user_email: user.email || "user@example.com",
           product_id: item.id || item.product_id,
           total_amount: item.price * item.quantity,
           product_quantity: item.quantity,
           product_price: item.price,
-          payment_status: "Pending",
+          payment_status: "Pending" 
         };
         const orderRes = await orderService.createOrder(orderPayload);
         const createdOrderId = orderRes.id || orderRes.order_id;
-
+        
         const paymentPayload = {
           payment_id: 0,
           order_id: createdOrderId,
           amount: item.price * item.quantity,
-          status: "Pending",
+          status: "Pending" // backend updates this
         };
         const paymentRes = await paymentService.createPayment(paymentPayload);
         return paymentRes.id || paymentRes.payment_id;
@@ -101,18 +94,15 @@ const CartPage = () => {
 
       const paymentIds = await Promise.all(paymentPromises);
 
+      // 3. Poll for status
       setPaymentStatus("Waiting for payment completion...");
       let attempts = 0;
       const pollInterval = setInterval(async () => {
         attempts++;
         try {
-          const statusResponses = await Promise.all(
-            paymentIds.map((id) => paymentService.getSinglePayment(id))
-          );
-          const allCompleted = statusResponses.every(
-            (res) => res.status === "Completed"
-          );
-
+          const statusResponses = await Promise.all(paymentIds.map(id => paymentService.getSinglePayment(id)));
+          const allCompleted = statusResponses.every(res => res.status === "Completed");
+          
           if (allCompleted) {
             clearInterval(pollInterval);
             setPaymentStatus("Payment Complete! Order placed successfully.");
@@ -121,20 +111,24 @@ const CartPage = () => {
           } else if (attempts > 10) {
             clearInterval(pollInterval);
             setIsProcessing(false);
-            setPaymentStatus(
-              "Payment timed out for some items. Please check your orders page."
-            );
+            setPaymentStatus("Payment timed out for some items. Please check your orders page.");
           }
         } catch (err) {
           console.error("Polling error", err);
         }
       }, 3000);
+
     } catch (error) {
       console.error("Checkout failed", error);
       alert("Checkout failed. Please try again.");
       setIsProcessing(false);
       setPaymentStatus(null);
     }
+  };
+
+  const handleAddToCart = (product) => {
+    // Add to cart logic
+    console.log("Adding to cart:", product);
   };
 
   return (
@@ -167,6 +161,7 @@ const CartPage = () => {
         </div>
 
         {items.length === 0 ? (
+          // Empty Cart State
           <div className="text-center py-16">
             <div className="w-24 h-24 bg-surfaceColor rounded-full flex items-center justify-center mx-auto mb-6">
               <svg
@@ -197,8 +192,9 @@ const CartPage = () => {
             </Link>
           </div>
         ) : (
+          // Cart with Items
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
+            {/* Cart Items Section */}
             <div className="lg:col-span-2">
               <div className="bg-surfaceColor rounded-lg">
                 <div className="p-6 border-b border-borderColor">
@@ -206,6 +202,7 @@ const CartPage = () => {
                     Cart Items
                   </h2>
                 </div>
+
                 <div className="divide-y divide-borderColor">
                   {items.map((item) => (
                     <CartItem
@@ -232,9 +229,7 @@ const CartPage = () => {
               {paymentStatus && (
                 <div className="mt-4 p-4 rounded-lg bg-surfaceColor border border-borderColor text-sm text-center">
                   <p className="text-primaryColor font-medium flex items-center justify-center gap-2">
-                    {isProcessing && (
-                      <span className="animate-spin h-4 w-4 border-2 border-primaryColor border-t-transparent rounded-full" />
-                    )}
+                    {isProcessing && <span className="animate-spin h-4 w-4 border-2 border-primaryColor border-t-transparent rounded-full" />}
                     {paymentStatus}
                   </p>
                 </div>
@@ -243,39 +238,28 @@ const CartPage = () => {
           </div>
         )}
 
-        {/* Recommended Products — live from backend */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold text-textColorMain mb-8">
-            You might also like
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-borderRadiusLg bg-surfaceColor border border-borderColor h-80 animate-pulse"
-                />
-              ))
-            ) : recommended.length > 0 ? (
-              recommended.map((product) => (
+        {/* Recommended Products Section */}
+        {items.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold text-textColorMain mb-8">
+              You might also like
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {recommendedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
-                  id={product.id}
                   image={product.image}
-                  title={product.title}
+                  title={product.name}
                   tags={product.tags}
                   description={product.description}
                   price={product.price}
-                  onAddToCart={() => handleAddRecommended(product)}
+                  onAddToCart={() => handleAddToCart(product)}
                 />
-              ))
-            ) : (
-              <div className="col-span-full text-center text-textColorMuted py-6">
-                No recommendations available right now.
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

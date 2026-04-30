@@ -1,35 +1,35 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, UserPlus } from 'lucide-react';
-import { authService } from '../../services/authService';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Mail, Lock, User, UserPlus } from "lucide-react";
+import { authService } from "../../services/authService";
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return false;
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError("Password must be at least 6 characters long");
       return false;
     }
     return true;
@@ -38,7 +38,7 @@ const SignupPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     if (!validateForm()) {
       setLoading(false);
@@ -50,17 +50,18 @@ const SignupPage = () => {
         username: formData.username,
         email: formData.email,
         plain_password: formData.password,
-        role: "buyer"
+        role: "buyer",
       });
-      
+
       if (response.message) {
-        // Registration successful, navigate to login page
-        navigate('/login');
+        navigate("/login");
       } else {
-        setError('Registration failed. Please try again.');
+        setError("Registration failed. Please try again.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(
+        err.response?.data?.message || "Registration failed. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -89,8 +90,15 @@ const SignupPage = () => {
           )}
 
           <div>
+          
+            <label
+              htmlFor="name"
+              className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall"
+            ></label>
+
             <label htmlFor="username" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
-              Username
+              User Name
+
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -105,14 +113,16 @@ const SignupPage = () => {
                 value={formData.username}
                 onChange={handleChange}
                 className="appearance-none relative block w-full pl-10 pr-3 py-paddingMedium border border-borderColor bg-surfaceColor text-textColorMain rounded-borderRadiusMd focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
-
-                placeholder="Enter your username"
+                placeholder="Enter your user name"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
+            <label
+              htmlFor="email"
+              className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall"
+            >
               Email Address
             </label>
             <div className="relative">
@@ -134,7 +144,10 @@ const SignupPage = () => {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
+            <label
+              htmlFor="password"
+              className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall"
+            >
               Password
             </label>
             <div className="relative">
@@ -144,7 +157,7 @@ const SignupPage = () => {
               <input
                 id="password"
                 name="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
                 value={formData.password}
@@ -158,16 +171,25 @@ const SignupPage = () => {
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff size={20} className="text-textColorMuted hover:text-textColorMain" />
+                  <EyeOff
+                    size={20}
+                    className="text-textColorMuted hover:text-textColorMain"
+                  />
                 ) : (
-                  <Eye size={20} className="text-textColorMuted hover:text-textColorMain" />
+                  <Eye
+                    size={20}
+                    className="text-textColorMuted hover:text-textColorMain"
+                  />
                 )}
               </button>
             </div>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall"
+            >
               Confirm Password
             </label>
             <div className="relative">
@@ -177,7 +199,7 @@ const SignupPage = () => {
               <input
                 id="confirmPassword"
                 name="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
                 value={formData.confirmPassword}
@@ -191,9 +213,15 @@ const SignupPage = () => {
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 {showConfirmPassword ? (
-                  <EyeOff size={20} className="text-textColorMuted hover:text-textColorMain" />
+                  <EyeOff
+                    size={20}
+                    className="text-textColorMuted hover:text-textColorMain"
+                  />
                 ) : (
-                  <Eye size={20} className="text-textColorMuted hover:text-textColorMain" />
+                  <Eye
+                    size={20}
+                    className="text-textColorMuted hover:text-textColorMain"
+                  />
                 )}
               </button>
             </div>
@@ -207,13 +235,22 @@ const SignupPage = () => {
               required
               className="h-4 w-4 text-primaryColor focus:ring-primaryColor border-borderColor rounded"
             />
-            <label htmlFor="agree-terms" className="ml-2 block text-fontSizeSm text-textColorMuted">
-              I agree to the{' '}
-              <a href="#" className="text-primaryColor hover:text-primaryColor/80">
+            <label
+              htmlFor="agree-terms"
+              className="ml-2 block text-fontSizeSm text-textColorMuted"
+            >
+              I agree to the{" "}
+              <a
+                href="#"
+                className="text-primaryColor hover:text-primaryColor/80"
+              >
                 Terms of Service
-              </a>{' '}
-              and{' '}
-              <a href="#" className="text-primaryColor hover:text-primaryColor/80">
+              </a>{" "}
+              and{" "}
+              <a
+                href="#"
+                className="text-primaryColor hover:text-primaryColor/80"
+              >
                 Privacy Policy
               </a>
             </label>
@@ -227,21 +264,37 @@ const SignupPage = () => {
             >
               {loading ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-textColorInverse" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-textColorInverse"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Creating account...
                 </span>
               ) : (
-                'Create Account'
+                "Create Account"
               )}
             </button>
           </div>
 
           <div className="text-center">
             <span className="text-textColorMuted text-fontSizeSm">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link
                 to="/login"
                 className="font-fontWeightMedium text-primaryColor hover:text-primaryColor/80"

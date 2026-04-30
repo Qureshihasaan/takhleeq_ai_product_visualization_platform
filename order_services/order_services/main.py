@@ -92,7 +92,7 @@ async def create_order(order : Order , producer : Annotated[AIOKafkaProducer, De
         raise HTTPException(status_code=500, detail="Error Sending order to kafka..")
     return order
 
-@app.put("/update_order{order_id}")
+@app.put("/update_order/{order_id}")
 async def update_order(order_id : int , update_order : Order , producer : Annotated[AIOKafkaProducer, Depends(kafka_producer)],
                        session : Annotated[Session, Depends(get_db)]                       
                        ):

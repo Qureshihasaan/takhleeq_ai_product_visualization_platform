@@ -1,4 +1,4 @@
-import { ordersApi } from './apiClient';
+import { ordersApi } from "./apiClient";
 
 export const orderService = {
   /**
@@ -6,7 +6,7 @@ export const orderService = {
    */
   createOrder: async (orderData) => {
     try {
-      const response = await ordersApi.post('/create_order', orderData);
+      const response = await ordersApi.post("/create_order", orderData);
       return response.data;
     } catch (error) {
       console.error("Failed to create order:", error);
@@ -19,7 +19,10 @@ export const orderService = {
    */
   updateOrder: async (orderId, orderData) => {
     try {
-      const response = await ordersApi.put(`/update_order${orderId}`, orderData);
+      const response = await ordersApi.put(
+        `/update_order/${orderId}`,
+        orderData,
+      );
       return response.data;
     } catch (error) {
       console.error("Failed to update order:", error);
@@ -32,7 +35,7 @@ export const orderService = {
    */
   getAllOrders: async () => {
     try {
-      const response = await ordersApi.get('/get_order');
+      const response = await ordersApi.get("/get_order");
       return response.data;
     } catch (error) {
       console.error("Failed to get orders:", error);
@@ -45,7 +48,9 @@ export const orderService = {
    */
   getSingleOrder: async (orderId) => {
     try {
-      const response = await ordersApi.get(`/get_single_order?order_id=${orderId}`);
+      const response = await ordersApi.get(
+        `/get_single_order?order_id=${orderId}`,
+      );
       return response.data;
     } catch (error) {
       console.error("Failed to get order:", error);
@@ -58,11 +63,13 @@ export const orderService = {
    */
   deleteOrder: async (orderId) => {
     try {
-      const response = await ordersApi.delete(`/delete_order?order_id=${orderId}`);
+      const response = await ordersApi.delete(
+        `/delete_order?order_id=${orderId}`,
+      );
       return response.data;
     } catch (error) {
       console.error("Failed to delete order:", error);
       throw error;
     }
-  }
+  },
 };
