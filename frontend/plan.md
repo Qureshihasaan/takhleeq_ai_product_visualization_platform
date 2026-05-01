@@ -1,62 +1,45 @@
-Frontend-to-Backend Integration
-1. Environment Configuration
-Action: Create a .env or central configuration file to store service base URLs.
+🛠️ Frontend Resolution Plan
+1. User Profile in Sidebar
+The Issue: The Sidebar currently lacks dynamic user data after a successful login.
+The Fix:
 
-VITE_PRODUCT_SERVICE: http://localhost:8000
+Context Integration: Ensure the Sidebar component is wrapped in your AuthContext.
 
-VITE_INVENTORY_SERVICE: http://localhost:8001
+State Access: Pull the user object (specifically the name or username property) directly from your global state (Redux/Zustand/Context API).
 
-VITE_AUTH_SERVICE: http://localhost:8002
+Conditional Rendering: Use a ternary operator to show a "Guest" placeholder or a loading skeleton while the user data is being fetched, then replace it with the actual name once user is truthy.
 
-VITE_ORDER_SERVICE: http://localhost:8003
+2. Route Protection & Persistence (The "Redirect" Bug)
+The Issue: Users are being booted to the landing page or prompted for login on every route change, even after logging in.
+The Fix:
 
-VITE_PAYMENT_SERVICE: http://localhost:8005
+Persistent Storage: Verify that the JWT or Auth Token is being stored in localStorage or sessionStorage upon login.
 
-VITE_CHAT_SERVICE: http://localhost:8006
+Initialization Logic: In your App’s entry point (e.g., App.tsx), implement a useEffect that checks for a token on mount. If a token exists, immediately validate it with the backend and set the global isAuthenticated state to true.
 
-VITE_AI_SERVICE: http://localhost:8007
+Loading State: Add a loading flag to your Auth State. Prevent the Protected Route from redirecting until loading is false. This prevents the "flash" where the app thinks the user is logged out before the token check completes.
 
-2. Authentication Layer (Port 8002)
-User Flow: * Implement Login/Signup forms using /signup and /login.
+3. Database Product Visibility
+The Issue: The frontend is not rendering products currently stored in the database.
+The Fix:
 
-Store the JWT token in localStorage or a secure cookie.
+Endpoint Validation: Verify the API endpoint for fetching products (e.g., /api/products) is returning a 200 OK status and the correct JSON structure in the Network tab.
 
-User Persistence: Call user/me on app initialization to hydrate the user state.
+CORS & Headers: Ensure the frontend is sending the necessary Authorization headers if the product list is protected.
 
-Auth Guard: Restrict access to /create_order and /ai-center based on the role (buyer).
+State Mapping: Ensure the fetch logic correctly updates the local state.
 
-3. Product Catalog & Inventory (Ports 8000 & 8001)
-Data Fetching: * Map the existing Product Card components to GET /product.
+Check: Are you mapping over an array? (products.map(...))
 
-Inventory Check: Before allowing a user to "Add to Cart," call /check_inventory/{product_id},{quantity}.
+Check: Is there a mismatch between the backend key (e.g., _id) and the frontend key (e.g., id)?
 
-Admin Actions (If applicable): Use POST, PUT, DELETE on /product for catalog management.
+Empty State Handling: Implement a "No Products Found" message to distinguish between a "loading" state, an "error" state, and an "empty" database.
 
-Images: Fetch product visuals via /product/{product_id}/image.
+📋 Checklist for Antigravity:
+Sidebar: Connect to AuthContext; display user.name.
 
-4. Order & Payment Flow (Ports 8003 & 8005)
-Checkout Sequence:
+Auth Guard: Update ProtectedRoute component to wait for the authLoading state to resolve before redirecting.
 
-Create Order: POST /create_order using current cart data.
+Persistence: Sync global state with localStorage on refresh.
 
-Initialize Payment: On order success, call POST /create_payment with the order_id and total_amount.
-
-Status Update: Poll GET /get_single_payment to check if status moves from Pending to Completed.
-
-Order History: Use GET /get_order to populate the user profile order list.
-
-5. AI Center & Chat Features (Ports 8006 & 8007)
-Customer Support: Connect the chat UI to POST /chat. Maintain session_id in the frontend state to keep thread continuity.
-
-AI Customization: * Submit designs via POST /ai-center/create.
-
-Display pending designs in a "User Lab" section using GET /ai-center.
-
-Handle user approval/rejection of AI-generated designs via the respective /approve and /reject endpoints.
-
-6. Implementation Notes for IDE
-Error Handling: Implement a global Interceptor (Axios/Fetch) to catch 401 (Auth) or 500 errors from any of the 7 services.
-
-Data Consistency: Ensure product_id and user_id are passed as Integers to match the backend schemas.
-
-Loading States: Show skeletons or spinners when switching between services (e.g., waiting for the AI service to generate a record).
+Product Fetching: Debug the useEffect hook responsible for calling the GET products API and verify the data mapping logic.

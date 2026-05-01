@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useSelector, useDispatch } from "react-redux";
 import {
   Home,
   Grid,
@@ -17,41 +18,17 @@ import {
   LogOut,
 } from "lucide-react";
 import CartIcon from "./CartIcon";
-import { authService } from "../../services/authService";
+import { logout } from "../../store/authSlice";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { isAuthenticated, user: currentUser } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const authStatus = authService.isAuthenticated();
-      setIsAuthenticated(authStatus);
-    };
-
-    checkAuth();
-    // Listen for storage changes (for cross-tab authentication)
-    window.addEventListener("storage", checkAuth);
-    return () => window.removeEventListener("storage", checkAuth);
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-      authService.removeAuthToken();
-      setIsAuthenticated(false);
-      setCurrentUser(null);
-      navigate("/");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      // Force logout even if API call fails
-      authService.removeAuthToken();
-      setIsAuthenticated(false);
-      setCurrentUser(null);
-      navigate("/");
-    }
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/");
   };
 
   const NavSection = ({ title, items }) => (
@@ -168,7 +145,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             {!isCollapsed && (
               <div className="duration-[var(--transitionDuration)] animate-in fade-in duration-[var(--transitionDuration)]">
                 <p className="text-textColorMain text-fontSizeSm font-fontWeightBold truncate">
-                  {currentUser?.name || "User"}
+                  {currentUser?.username || "User"}
                 </p>
                 <button
                   onClick={handleLogout}

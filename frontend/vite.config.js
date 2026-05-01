@@ -8,6 +8,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  test: {
+    environment: 'happy-dom',
+    globals: true,
+    setupFiles: ['./src/test-setup.js'],
+  },
   server: {
     host: true, // Crucial for Docker
     port: 5173,
@@ -49,17 +54,17 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/payments/, '')
       },
       // 7. AI CHATBOT (RAG)
-      '/api/ai': {
-        target: 'http://ai_services/ai_chatbot:8006',
+      '/api/ai-chat': {
+        target: 'http://ai_chatbot:8006',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ai/, '')
+        rewrite: (path) => path.replace(/^\/api\/ai-chat/, '')
       },
       // 8. AI PRODUCT VISUALIZATION (Design Gen)
-      '/api/ai': {
-        target: 'http://ai_services/ai_design_visualization:8007',
+      '/api/ai-design': {
+        target: 'http://ai_design_visualization:8007',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ai/, '')
+        rewrite: (path) => path.replace(/^\/api\/ai-design/, '')
       },
     }
   }
-})
+})

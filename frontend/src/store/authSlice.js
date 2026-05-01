@@ -28,6 +28,7 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.user = action.payload;
       state.error = null;
+      state.status = "succeeded"; // Keep as succeeded — we already have auth, no re-fetch needed
     },
     logout: (state) => {
       state.isAuthenticated = false;

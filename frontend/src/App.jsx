@@ -33,7 +33,7 @@ const App = () => {
                 </AuthGuard>}
                  />
             <Route path="cart" element={<AuthGuard><CartPage /></AuthGuard>} />
-            <Route path="categories" element={<CategoriesPage />} />
+            <Route path="categories" element={<AuthGuard><CategoriesPage /></AuthGuard>} />
             <Route path="my-designs" element={<AuthGuard><MyDesignsPage /></AuthGuard>} />
             <Route path="notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
             <Route path="settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />

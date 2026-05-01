@@ -1,25 +1,27 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCurrentUser, logout } from '../../store/authSlice';
+import { authService } from '../../services/authService';
 
 const AuthInit = ({ children }) => {
   const dispatch = useDispatch();
-  const { isAuthenticated, status } = useSelector((state) => state.auth);
+  const { status } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (isAuthenticated && status === 'idle') {
+    // On page refresh: localStorage has a token but Redux state is reset to initial.
+    // status starts as 'idle' — this is the signal to hydrate from the token.
+    const token = authService.getAuthToken();
+    if (token && status === 'idle') {
       dispatch(fetchCurrentUser());
     }
 
     const handleUnauthorized = () => {
       dispatch(logout());
-      // We don't forcibly navigate here because AuthGuard will take over
-      // when isAuthenticated becomes false.
     };
 
-    window.addEventListener("auth:unauthorized", handleUnauthorized);
-    return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
-  }, [dispatch, isAuthenticated, status]);
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, [dispatch, status]);
 
   return children;
 };

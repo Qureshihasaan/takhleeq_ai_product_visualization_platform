@@ -6,7 +6,7 @@ const AuthGuard = ({ children }) => {
   const { isAuthenticated, status } = useSelector((state) => state.auth);
   const location = useLocation();
 
-  // If we are currently loading the user out of hydration, you might want to show a spinner
+  // Show spinner only while actively fetching the user profile (page refresh hydration)
   if (status === 'loading') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -15,11 +15,8 @@ const AuthGuard = ({ children }) => {
     );
   }
 
+  // Not authenticated and not in a loading state → redirect to login
   if (!isAuthenticated) {
-    // Redirect them to the /login page, but save the current location they were
-    // trying to go to when they were redirected. This allows us to send them
-    // along to that page after they login, which is a nicer user experience
-    // than dropping them off on the home page.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
