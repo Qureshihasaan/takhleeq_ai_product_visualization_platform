@@ -4,44 +4,55 @@ import TestimonialCard from '../ui/TestimonialCard';
 import { ArrowRight } from 'lucide-react';
 import HeroSection from '../ui/Hero';
 import { productService } from '../../services/productService';
+import { useCart } from '../../hooks/useCart';
 
 // Fallback products for when the API is not available
 const FALLBACK_PRODUCTS = [
   {
-    id: 1,
-    title: "AI T-Shirt",
-    price: "29.99",
-    image: "/hero_wall_art.jpeg",
-    tags: ["Cotton", "Black"],
-    description: "Premium organic cotton with AI prints."
+    product_id: 1,
+    Product_name: "AI T-Shirt",
+    price: 29.99,
+    product_image: null,
+    category: "Cotton",
+    Product_details: "Premium organic cotton with AI prints."
   },
   {
-    id: 2,
-    title: "Heavy Hoodie",
-    price: "54.99",
-    image: "/hoodie.jpg",
-    tags: ["Winter", "Sage"],
-    description: "Heavyweight fleece for bold designs."
+    product_id: 2,
+    Product_name: "Heavy Hoodie",
+    price: 54.99,
+    product_image: null,
+    category: "Winter",
+    Product_details: "Heavyweight fleece for bold designs."
   },
   {
-    id: 3,
-    title: "Ceramic Mug",
-    price: "18.50",
-    image: "/t_shirt.jpg",
-    tags: ["White", "Glossy"],
-    description: "Dishwasher safe custom ceramic mugs."
+    product_id: 3,
+    Product_name: "Ceramic Mug",
+    price: 18.50,
+    product_image: null,
+    category: "White",
+    Product_details: "Dishwasher safe custom ceramic mugs."
   }
 ];
+
+const PRODUCTS_BASE_URL = import.meta.env.VITE_PRODUCTS_API_URL || 'http://localhost:8000';
+
+const getProductImageUrl = (product) => {
+  if (product.product_image) {
+    return `data:image/png;base64,${product.product_image}`;
+  }
+  return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image`;
+};
 
 const LandingPage = () => {
   const [products, setProducts] = useState(FALLBACK_PRODUCTS);
   const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const data = await productService.getAllProducts();
-        if (data && data.length > 0) {
+        if (data && Array.isArray(data) && data.length > 0) {
           setProducts(data);
         } else {
           setProducts(FALLBACK_PRODUCTS);
@@ -57,6 +68,16 @@ const LandingPage = () => {
     fetchProducts();
   }, []);
 
+  const handleAddToCart = (product) => {
+    addToCart({
+      id: product.product_id,
+      name: product.Product_name,
+      price: product.price,
+      image: getProductImageUrl(product),
+      quantity: 1,
+    });
+  };
+
   return (
     <>
       <HeroSection />
@@ -71,9 +92,24 @@ const LandingPage = () => {
             </button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-marginMedium">
-            {products.map((i) => (
-              <div key={i} className="aspect-square rounded-borderRadiusLg bg-surfaceColor border border-borderColor overflow-hidden">
-                <img src={i.image} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" alt="AI Design" />
+            {products.slice(0, 4).map((product) => (
+              <div
+                key={product.product_id}
+                className="aspect-square rounded-borderRadiusLg bg-surfaceColor border border-borderColor overflow-hidden"
+              >
+                {product.product_image ? (
+                  <img
+                    src={`data:image/png;base64,${product.product_image}`}
+                    className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+                    alt={product.Product_name}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-linear-to-br from-primaryColor/20 to-accentColor/20 flex items-center justify-center">
+                    <span className="text-textColorMuted text-fontSizeXs text-center px-2">
+                      {product.Product_name}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -106,9 +142,13 @@ const LandingPage = () => {
               ) : (
                 products.map((product) => (
                   <ProductCard
-                    key={product.id || product._id}
-                    {...product}
-                    onAddToCart={() => console.log(`Added ${product.title} to cart`)}
+                    key={product.product_id}
+                    image={getProductImageUrl(product)}
+                    title={product.Product_name}
+                    tags={product.category ? [product.category] : []}
+                    description={product.Product_details}
+                    price={product.price}
+                    onAddToCart={() => handleAddToCart(product)}
                   />
                 ))
               )}
@@ -116,7 +156,7 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* Section 4: Testimonials (Hear from our Creators) */}
+        {/* Section 4: Testimonials */}
         <section className="px-paddingLarge py-paddingLarge max-w-[var(--maxWidthContainer)] mx-auto w-full">
           <div className="mb-marginLarge text-center md:text-left">
             <h2 className="text-textColorMain">Hear from our Creators</h2>
@@ -138,8 +178,6 @@ const LandingPage = () => {
         </section>
 
       </div>
-      <></>
-      {/*  */}
     </>
   );
 };

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { authService } from '../../services/authService';
+import { loginSuccess } from '../../store/authSlice';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +15,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     setFormData({
@@ -27,8 +30,6 @@ const LoginPage = () => {
     setError('');
 
     try {
-      console.log(formData);
-      
       const response = await authService.login({
         username: formData.username,
         email: formData.email,
@@ -37,13 +38,22 @@ const LoginPage = () => {
       });
       
       if (response.access_token) {
+        // 1. Store the token so subsequent API calls are authenticated
         authService.setAuthToken(response.access_token);
+
+        // 2. Fetch the full user profile now that the token is set
+        const userProfile = await authService.getCurrentUser();
+
+        // 3. Hydrate Redux with real user data — status='succeeded' prevents
+        //    AuthInit from triggering another fetch on navigation
+        dispatch(loginSuccess(userProfile));
+
         navigate('/');
       } else {
         setError('Login failed. Please try again.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      setError(err.response?.data?.detail || err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
