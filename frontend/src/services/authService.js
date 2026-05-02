@@ -2,26 +2,25 @@ import { usersApi } from "./apiClient";
 
 export const authService = {
   /**
-   * Login user with username and password
+   * Login user — uses /login_json (JSON body) so the JWT sub claim
+   * is stored as email, which matches what GET /user/me expects.
+   * Accepts username OR email as the identifier.
    */
-  login: async (userData) => {
-    try {
-      const formData = new URLSearchParams();
-      // FastAPI OAuth2PasswordRequestForm expects username and password fields
-      formData.append('username', userData.username || userData.email || "");
-      formData.append('password', userData.plain_password || userData.password || "");
+ login: async (userData) => {
+  try {
+    // Ensure the payload only contains email and password
+    const payload = {
+      email: userData.email || "",
+      password: userData.password || userData.plain_password || "",
+    };
 
-      const response = await usersApi.post("/login", formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
-    }
-  },
+    const response = await usersApi.post("/login_json", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Login failed:", error);
+    throw error;
+  }
+},
 
   /**
    * Register new user

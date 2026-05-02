@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import MainLayout from "./components/MainLayout";
 import LandingPage from "./components/pages/LandingPage";
 import LoginPage from "./components/pages/LoginPage";
@@ -20,9 +21,10 @@ import { store } from "./store/store";
 
 const App = () => {
   return (
-    <Provider store={store}>
-      <AuthInit>
-        <Router>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <Provider store={store}>
+        <AuthInit>
+          <Router>
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<MainLayout />}>
@@ -47,8 +49,9 @@ const App = () => {
         </Routes>
         <FloatingChatbot />
       </Router>
-      </AuthInit>
-    </Provider>
+        </AuthInit>
+      </Provider>
+    </GoogleOAuthProvider>
   );
 };
 

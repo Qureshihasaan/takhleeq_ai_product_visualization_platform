@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Annotated, AsyncGenerator, Dict, Optional
@@ -8,6 +9,7 @@ from aiokafka import AIOKafkaProducer
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from . import setting
@@ -17,6 +19,12 @@ from .model import CreateUser, GoogleAuthRequest, Token, User
 from .producer import kafka_producer
 from .schema import authenticate_user, bcrypt_context
 from .utils import create_access_token, decode_access_token
+
+
+class LoginRequest(BaseModel):
+    username: str | None = None
+    email: str | None = None
+    password: str
 
 
 @asynccontextmanager
@@ -110,17 +118,69 @@ async def login_with_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_session)],
 ) -> Token:
+    logger = logging.getLogger("user_services.main")
+    logger.info("Login attempt for identifier=%s", form_data.username)
+
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
+        logger.info(
+            "Login failed for identifier=%s: could not validate user",
+            form_data.username,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Could Not Validate User"
         )
 
     # Ensure user.id is an int (fallback to 0 if unexpectedly None)
     user_id = int(user.id) if user.id is not None else 0
+    logger.info("Login successful for user id=%s, email=%s", user_id, user.email)
 
     access_token = create_access_token(
         user.username,
+        user_id,
+        user.role,
+        timedelta(minutes=setting.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return Token(access_token=access_token, token_type="bearer")
+
+
+@app.post("/login_json", response_model=Token)
+async def login_json(
+    payload: LoginRequest,
+    db: Annotated[Session, Depends(get_session)],
+) -> Token:
+    """JSON-friendly login endpoint.
+
+    Accepts either `username` or `email` + `password` in the JSON body, which
+    matches typical frontend behavior (React forms sending JSON).
+
+    Example request body:
+      { "email": "alice@example.com", "password": "secret" }
+    """
+    logger = logging.getLogger("user_services.main")
+
+    identifier = payload.username or payload.email
+    logger.info("JSON login attempt for identifier=%s", identifier)
+
+    if not identifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="username or email required"
+        )
+
+    user = authenticate_user(identifier, payload.password, db)
+    if not user:
+        logger.info(
+            "JSON login failed for identifier=%s: could not validate user", identifier
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Could Not Validate User"
+        )
+
+    user_id = int(user.id) if user.id is not None else 0
+    logger.info("JSON login successful for user id=%s, email=%s", user_id, user.email)
+
+    access_token = create_access_token(
+        user.email,
         user_id,
         user.role,
         timedelta(minutes=setting.ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -259,7 +319,10 @@ def read_user(
     db: Annotated[Session, Depends(get_session)],
 ):
     user_token_data = decode_access_token(token)
-    user = db.exec(select(User).where(User.email == user_token_data["sub"])).first()
+    sub = user_token_data.get("sub", "")
+    # sub may be username (from /login) or email (from /login_json or /auth/google)
+    # Search by email first, then by username as fallback
+    user = db.exec(select(User).where((User.email == sub) | (User.username == sub))).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user

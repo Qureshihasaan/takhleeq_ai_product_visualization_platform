@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { loginSuccess } from '../../store/authSlice';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
+    identifier: '', // accepts username 
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -18,10 +17,7 @@ const LoginPage = () => {
   const dispatch = useDispatch();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -29,23 +25,24 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
+    // Decide whether the identifier is an email or username
+    const isEmail = formData.identifier.includes('@');
+
     try {
       const response = await authService.login({
-        username: formData.username,
-        email: formData.email,
+        email: isEmail ? formData.identifier : undefined,
+        // username: isEmail ? undefined : formData.identifier,
         plain_password: formData.password,
-        role: "buyer"
       });
-      
+
       if (response.access_token) {
-        // 1. Store the token so subsequent API calls are authenticated
+        // Store the token so subsequent API calls are authenticated
         authService.setAuthToken(response.access_token);
 
-        // 2. Fetch the full user profile now that the token is set
+        // Fetch the full user profile now that the token is set
         const userProfile = await authService.getCurrentUser();
 
-        // 3. Hydrate Redux with real user data — status='succeeded' prevents
-        //    AuthInit from triggering another fetch on navigation
+        // Hydrate Redux with real user data
         dispatch(loginSuccess(userProfile));
 
         navigate('/');
@@ -53,7 +50,12 @@ const LoginPage = () => {
         setError('Login failed. Please try again.');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || err.response?.data?.message || 'Login failed. Please check your credentials.');
+      const detail = err.response?.data?.detail;
+      if (detail === 'Could Not Validate User') {
+        setError('Incorrect email or password.');
+      } else {
+        setError(detail || err.response?.data?.message || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }
@@ -81,43 +83,22 @@ const LoginPage = () => {
             </div>
           )}
 
+          {/*  Email — single field */}
           <div>
-            <label htmlFor="username" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
-              Username
+            <label htmlFor="identifier" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
+            Email
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User size={20} className="text-textColorMuted" />
               </div>
               <input
-                id="username"
-                name="username"
+                id="identifier"
+                name="identifier"
                 type="text"
-                autoComplete="username"
-                required
-                value={formData.username}
-                onChange={handleChange}
-                className="appearance-none relative block w-full pl-10 pr-3 py-paddingMedium border border-borderColor bg-surfaceColor text-textColorMain rounded-borderRadiusMd focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
-                placeholder="Enter your username"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
-              Email Address
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail size={20} className="text-textColorMuted" />
-              </div>
-              <input
-                id="email"
-                name="email"
-                type="email"
                 autoComplete="email"
                 required
-                value={formData.email}
+                value={formData.identifier}
                 onChange={handleChange}
                 className="appearance-none relative block w-full pl-10 pr-3 py-paddingMedium border border-borderColor bg-surfaceColor text-textColorMain rounded-borderRadiusMd focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
                 placeholder="Enter your email"
@@ -125,6 +106,7 @@ const LoginPage = () => {
             </div>
           </div>
 
+          {/* Password */}
           <div>
             <label htmlFor="password" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
               Password
@@ -170,7 +152,6 @@ const LoginPage = () => {
                 Remember me
               </label>
             </div>
-
             <div className="text-fontSizeSm">
               <a href="#" className="font-fontWeightMedium text-primaryColor hover:text-primaryColor/80">
                 Forgot your password?
@@ -201,10 +182,7 @@ const LoginPage = () => {
           <div className="text-center">
             <span className="text-textColorMuted text-fontSizeSm">
               Don't have an account?{' '}
-              <Link
-                to="/signup"
-                className="font-fontWeightMedium text-primaryColor hover:text-primaryColor/80"
-              >
+              <Link to="/signup" className="font-fontWeightMedium text-primaryColor hover:text-primaryColor/80">
                 Sign up
               </Link>
             </span>
