@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import { authService } from '../../services/authService';
 import { loginSuccess } from '../../store/authSlice';
 
@@ -59,6 +60,30 @@ const LoginPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await authService.googleAuth(credentialResponse.credential);
+      if (response.access_token) {
+        authService.setAuthToken(response.access_token);
+        const userProfile = await authService.getCurrentUser();
+        dispatch(loginSuccess(userProfile));
+        navigate('/');
+      } else {
+        setError('Google login failed. Please try again.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google sign-in was unsuccessful. Try again.');
   };
 
   return (
@@ -177,6 +202,29 @@ const LoginPage = () => {
                 'Sign in'
               )}
             </button>
+          </div>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-borderColor"></div>
+            </div>
+            <div className="relative flex justify-center text-fontSizeSm">
+              <span className="px-2 bg-backgroundColor text-textColorMuted">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="filled_black"
+              shape="rectangular"
+              text="signin_with"
+              size="large"
+              width="100%"
+            />
           </div>
 
           <div className="text-center">

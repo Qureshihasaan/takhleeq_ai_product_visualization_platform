@@ -83,6 +83,7 @@ dependencies = [
     { name = "python-docs" },
     { name = "python-docx" },
     { name = "python-multipart" },
+    { name = "sqlmodel" },
 ]
 
 [package.metadata]
@@ -94,6 +95,7 @@ requires-dist = [
     { name = "python-docs", specifier = ">=0.1.0" },
     { name = "python-docx", specifier = ">=1.2.0" },
     { name = "python-multipart", specifier = ">=0.0.22" },
+    { name = "sqlmodel", specifier = ">=0.0.37" },
 ]
 
 [[package]]
