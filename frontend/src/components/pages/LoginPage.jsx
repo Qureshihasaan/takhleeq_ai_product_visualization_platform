@@ -64,28 +64,26 @@ const LoginPage = () => {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
-    setError("");
+    setError('');
     try {
       const response = await authService.googleAuth(credentialResponse.credential);
       if (response.access_token) {
         authService.setAuthToken(response.access_token);
         const userProfile = await authService.getCurrentUser();
         dispatch(loginSuccess(userProfile));
-        navigate("/");
+        navigate('/');
       } else {
-        setError("Google sign-in failed. Please try again.");
+        setError('Google login failed. Please try again.');
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Google sign-in failed. Please try again."
-      );
+      setError(err.response?.data?.message || 'Google login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleError = () => {
-    setError("Google sign-in was unsuccessful. Try again.");
+    setError('Google sign-in was unsuccessful. Try again.');
   };
 
   return (
