@@ -6,22 +6,23 @@ export const authService = {
    * is stored as email, which matches what GET /user/me expects.
    * Accepts username OR email as the identifier.
    */
- login: async (userData) => {
-  try {
-    // Support both username and email for backend /login_json
-    const payload = {
-      ...(userData.username ? { username: userData.username } : {}),
-      ...(userData.email ? { email: userData.email } : {}),
-      password: userData.password || userData.plain_password || "",
-    };
-
-    const response = await usersApi.post("/login_json", payload);
-    return response.data;
-  } catch (error) {
-    console.error("Login failed:", error);
-    throw new Error(error.response?.data?.detail || error.message || "Login failed");
-  }
-},
+  login: async (userData) => {
+    try {
+      const formData = new URLSearchParams();
+      formData.append("username", userData.username || "");
+      formData.append("password", userData.password || userData.plain_password || "");
+      
+      const response = await usersApi.post("/login", formData, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw new Error(error.response?.data?.detail || error.message || "Login failed");
+    }
+  },
 
   /**
    * Register new user

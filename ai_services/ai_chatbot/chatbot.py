@@ -29,7 +29,7 @@ print(f"DEBUG: Key starts with: {pinecone_api_key[:8]}...")
 # if gemini_api_key:
 #     print("Gemini API Key loaded.")
 if openrouter_api_key:
-    print("Openrouter API Key loaded.")
+    print(f"Openrouter API Key loaded. Starts with: {openrouter_api_key[:15]}...")
 if pinecone_api_key:
     print("Pinecone API Key loaded.")
 
@@ -132,7 +132,7 @@ async def stream_agent_response(session, user_input):
     """
     result = Runner.run_streamed(agent, input=user_input, session=session)
     async for event in result.stream_events():
-        if event.type == "raw_Sesponse_event":
+        if event.type == "raw_response_event":
             if isinstance(event.data, ResponseTextDeltaEvent):
                 delta = event.data.delta or ""
                 if delta:

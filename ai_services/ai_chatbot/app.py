@@ -9,11 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from chatbot import (
-    SESSIONS_DB,
-    SQLiteSession,
-    stream_agent_response,
-)
+from chatbot import SESSIONS_DB, stream_agent_response
+from agents import SQLiteSession
 
 
 # ---------------------------------------------------------------------------

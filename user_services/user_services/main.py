@@ -21,10 +21,7 @@ from .schema import authenticate_user, bcrypt_context
 from .utils import create_access_token, decode_access_token
 
 
-class LoginRequest(BaseModel):
-    username: str | None = None
-    email: str | None = None
-    password: str
+
 
 
 @asynccontextmanager
@@ -144,48 +141,7 @@ async def login_with_token(
     return Token(access_token=access_token, token_type="bearer")
 
 
-@app.post("/login_json", response_model=Token)
-async def login_json(
-    payload: LoginRequest,
-    db: Annotated[Session, Depends(get_session)],
-) -> Token:
-    """JSON-friendly login endpoint.
 
-    Accepts either `username` or `email` + `password` in the JSON body, which
-    matches typical frontend behavior (React forms sending JSON).
-
-    Example request body:
-      { "email": "alice@example.com", "password": "secret" }
-    """
-    logger = logging.getLogger("user_services.main")
-
-    identifier = payload.username or payload.email
-    logger.info("JSON login attempt for identifier=%s", identifier)
-
-    if not identifier:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="username or email required"
-        )
-
-    user = authenticate_user(identifier, payload.password, db)
-    if not user:
-        logger.info(
-            "JSON login failed for identifier=%s: could not validate user", identifier
-        )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Could Not Validate User"
-        )
-
-    user_id = int(user.id) if user.id is not None else 0
-    logger.info("JSON login successful for user id=%s, email=%s", user_id, user.email)
-
-    access_token = create_access_token(
-        user.email,
-        user_id,
-        user.role,
-        timedelta(minutes=setting.ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    return Token(access_token=access_token, token_type="bearer")
 
 
 @app.post("/auth/google", response_model=Token)

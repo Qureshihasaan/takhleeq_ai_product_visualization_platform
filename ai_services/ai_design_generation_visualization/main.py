@@ -26,7 +26,7 @@ from sqlmodel import Session, select
 from aiokafka import AIOKafkaProducer
 
 import config
-from database import AICenter, get_session
+from database import AICenter, get_session, create_db_and_tables
 from consumer import consume_product_events
 from producer import kafka_producer
 from model import (
@@ -50,11 +50,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting AI Design Visualization service …")
 
     # Create database tables
-    # try:
-    #     create_db_and_tables()
-    #     logger.info("Database tables created successfully.")
-    # except Exception as e:
-    #     logger.warning("Database setup skipped or failed: %s", e)
+    try:
+        create_db_and_tables()
+        logger.info("Database tables created successfully.")
+    except Exception as e:
+        logger.warning("Database setup skipped or failed: %s", e)
 
     # Start Kafka consumer in background
     consumer_task = asyncio.create_task(consume_product_events())
@@ -234,8 +234,14 @@ async def ai_center_create(
         )
 
     except Exception as exc:
-        logger.error("AI Center create failed: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        error_msg = str(exc)
+        logger.error("AI Center create failed: %s", error_msg)
+        if "'tuple' object has no attribute 'choices'" in error_msg or "filtered" in error_msg.lower():
+            raise HTTPException(
+                status_code=400, 
+                detail="Your design prompt triggered the AI safety filters. Please adjust your description to avoid sensitive, violent, or inappropriate content and try again."
+            )
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @app.post("/ai-center/{record_id}/approve", response_model=AICenterResponse)

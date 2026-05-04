@@ -8,7 +8,7 @@ import { loginSuccess } from '../../store/authSlice';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
-    identifier: '', // accepts username 
+    username: '', 
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -26,13 +26,9 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
-    // Decide whether the identifier is an email or username
-    const isEmail = formData.identifier.includes('@');
-
     try {
       const response = await authService.login({
-        email: isEmail ? formData.identifier : undefined,
-        // username: isEmail ? undefined : formData.identifier,
+        username: formData.username,
         plain_password: formData.password,
       });
 
@@ -108,25 +104,25 @@ const LoginPage = () => {
             </div>
           )}
 
-          {/*  Email — single field */}
+          {/* Username */}
           <div>
-            <label htmlFor="identifier" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
-            Email
+            <label htmlFor="username" className="block text-textColorMain text-fontSizeSm font-fontWeightMedium mb-marginSmall">
+            Username
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User size={20} className="text-textColorMuted" />
               </div>
               <input
-                id="identifier"
-                name="identifier"
+                id="username"
+                name="username"
                 type="text"
-                autoComplete="email"
+                autoComplete="username"
                 required
-                value={formData.identifier}
+                value={formData.username}
                 onChange={handleChange}
                 className="appearance-none relative block w-full pl-10 pr-3 py-paddingMedium border border-borderColor bg-surfaceColor text-textColorMain rounded-borderRadiusMd focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
-                placeholder="Enter your email"
+                placeholder="Enter your username"
               />
             </div>
           </div>

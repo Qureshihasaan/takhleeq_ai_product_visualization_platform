@@ -5,11 +5,12 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Annotated, AsyncGenerator, List, Optional
 
+
 from aiokafka import AIOKafkaProducer
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
 from sqlmodel import select
+from fastapi.responses import RedirectResponse
 
 from . import setting
 from .authenticate import validate_role
@@ -218,7 +219,6 @@ async def delete_product(
 async def get_product_image(
     product_id: int,
     session: Session = Depends(get_session),
-    token_data: dict = Depends(validate_role(["seller", "admin", "buyer"])),
 ):
     """Get product image.
 
