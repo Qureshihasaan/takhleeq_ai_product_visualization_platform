@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Layout,
+  Shield,
   LogIn,
   LogOut,
 } from "lucide-react";
@@ -128,6 +129,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         <NavSection
           title="Settings"
           items={[
+            ...(currentUser?.role === "seller"
+              ? [{ name: "Dashboard", icon: <Shield size={20} />, to: "/admin" }]
+              : []),
             { name: "Contact", icon: <Mail size={20} />, to: "/contact" },
             { name: "Settings", icon: <Settings size={20} />, to: "/settings" },
           ]}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from "@react-oauth/google";
 import { authService } from '../../services/authService';
 import { loginSuccess } from '../../store/authSlice';
 

@@ -72,12 +72,13 @@ describe('CategoriesPage', () => {
     });
   });
 
-  it('renders category cards', async () => {
+  it('does not render static category cards (backend-driven mode)', async () => {
     productService.getAllProducts.mockResolvedValue([]);
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Abstract Art')).toBeTruthy();
-      expect(screen.getByText('Nature & Landscape')).toBeTruthy();
+      expect(screen.queryByText('Abstract Art')).toBeNull();
+      expect(screen.queryByText('Nature & Landscape')).toBeNull();
+      expect(screen.getByText('Featured Products')).toBeTruthy();
     });
   });
 });

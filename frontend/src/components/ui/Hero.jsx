@@ -64,50 +64,50 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* 2. Bento Grid Section */}
+      {/* 2. Bento Grid Section
       <div className="px-paddingMedium md:px-paddingLarge py-paddingLarge max-w-[var(--maxWidthContainer)] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-marginMedium lg:gap-marginLarge">
           
           {/* Custom Apparel - Large Tall Card */}
-          <CategoryCard 
+          {/* <CategoryCard 
             className="md:col-span-4 aspect-[4/5] md:aspect-auto md:h-[500px]"
             image={CustomApparelImage}
             title="Custom Apparel"
             subtitle="Premium printed t-shirts"
             buttonText="Start designing"
-          />
+          /> */}
 
           {/* Wall Art - Large Tall Card */}
-          <CategoryCard 
+          {/* <CategoryCard 
             className="md:col-span-4 aspect-[4/5] md:aspect-auto md:h-[500px]"
             image={WallArtImage}
             title="Wall Art"
             subtitle="Diverse print formats"
             buttonText="Start designing"
-          />
+          /> */}
 
           {/* Right Column - Two Stacked Cards */}
-          <div className="md:col-span-4 flex flex-col gap-marginMedium lg:gap-marginLarge h-full">
+          {/* <div className="md:col-span-4 flex flex-col gap-marginMedium lg:gap-marginLarge h-full"> */}
             {/* Top Right Card */}
-            <CategoryCard 
+            {/* <CategoryCard 
               className="flex-1 aspect-[16/9] md:aspect-auto"
               image={AccessoriesImage}
               title="Accessories"
               subtitle="Custom phone cases"
               buttonText="View options"
-            />
+            /> */}
             {/* Bottom Right Card */}
-            <CategoryCard 
+            {/* <CategoryCard 
               className="flex-1 aspect-[16/9] md:aspect-auto bg-surfaceColor"
               image={HeroMockupImage} // Placeholder for secondary accessory image
               title="Lifestyle"
               subtitle="Totes & Bags"
               buttonText="View options"
-            />
-          </div>
+            /> */}
+          {/* </div> */}
 
-        </div>
-      </div>
+        {/* </div> */}
+      {/* </div> */} 
     </section>
   );
 };

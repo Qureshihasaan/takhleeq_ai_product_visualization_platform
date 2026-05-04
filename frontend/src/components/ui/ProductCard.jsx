@@ -1,5 +1,5 @@
-import React from 'react';
-import { Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Eye, ShoppingCart } from 'lucide-react';
 
 const ProductCard = ({ 
   image, 
@@ -7,75 +7,92 @@ const ProductCard = ({
   tags = [], 
   description, 
   price, 
-  onAddToCart 
+  onAddToCart,
+  onViewDetails,
 }) => {
-  return (
-    <div className="w-full max-w-[340px] mx-auto rounded-borderRadiusLg overflow-hidden bg-surfaceColor shadow-boxShadowMedium transition-all duration-300 hover:-translate-y-1 group flex flex-col relative focus-within:ring-2 focus-within:ring-focusRingColor">
-      
-      {/* Top Image Section - Fixed Height */}
-      <div className="relative h-[250px] bg-backgroundColor flex items-center justify-center overflow-hidden p-paddingMedium">
-        
-        {/* Product Image - Full Visibility */}
-        <img 
-          src={image} 
-          alt={title} 
-          className="absolute inset-x-0 inset-y-paddingMedium w-full h-[calc(100%-var(--spacing-paddingLarge))] object-contain z-0"
-        />
+  const [isFavorite, setIsFavorite] = useState(false);
+  const formattedPrice = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(Number(price || 0));
 
-        {/* Heart Icon - Top Right, Subtle */}
-        <button 
-          className="absolute top-paddingMedium right-paddingMedium p-paddingSmall rounded-borderRadiusFull bg-backgroundColor/50 hover:bg-backgroundColor/80 backdrop-blur-md transition-colors z-10"
-          aria-label="Add to favorites"
+  return (
+    <article className="group w-full max-w-[340px] mx-auto rounded-2xl border border-borderColor/70 bg-surfaceColor overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 focus-within:ring-2 focus-within:ring-focusRingColor">
+      <div className="relative bg-linear-to-b from-backgroundColor to-surfaceColor p-4">
+        <div className="h-[220px] rounded-xl bg-backgroundColor/70 border border-borderColor/40 flex items-center justify-center overflow-hidden">
+          <img
+            src={image}
+            alt={title}
+            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
+
+        <button
+          onClick={() => setIsFavorite(!isFavorite)}
+          className="absolute top-6 right-6 h-9 w-9 inline-flex items-center justify-center rounded-full bg-black/45 backdrop-blur-md border border-white/10 text-white hover:bg-black/60 transition"
+          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         >
-          <Heart size={18} className="text-textColorMain fill-textColorMain" />
+          <Heart
+            size={16}
+            className={`transition-colors ${isFavorite ? 'fill-primaryColor text-primaryColor' : 'text-white/90'}`}
+          />
         </button>
       </div>
 
-      {/* Bottom Content Section */}
-      <div className="flex-grow p-paddingLarge pt-paddingMedium space-y-paddingSmall relative flex flex-col justify-between">
-        
-        <div className="space-y-paddingSmall">
-          <h3 className="line-clamp-1 mb-1 text-textColorMain" title={title}>
+      <div className="p-5 flex flex-col gap-4">
+        <div>
+          <h3 className="text-textColorMain text-lg font-semibold leading-tight line-clamp-1" title={title}>
             {title}
           </h3>
+          <p className="mt-2 text-textColorMuted text-sm leading-relaxed line-clamp-2">
+            {description}
+          </p>
+        </div>
 
-          {/* Dynamic Tags */}
-          <div className="flex flex-wrap gap-spacingUnit pt-1">
-            {tags.map((tag, index) => (
-              <span 
-                key={index} 
-                className="px-2.5 py-1 border border-primaryColor/50 rounded-borderRadiusFull text-fontSizeXs font-fontWeightMedium text-primaryColor uppercase tracking-wide"
+        {!!tags.length && (
+          <div className="flex flex-wrap gap-2">
+            {tags.slice(0, 3).map((tag, index) => (
+              <span
+                key={index}
+                className="px-2.5 py-1 rounded-full bg-primaryColor/10 text-primaryColor border border-primaryColor/20 text-[11px] font-medium uppercase tracking-wide"
               >
                 {tag}
               </span>
             ))}
           </div>
+        )}
 
-          <p className="text-textColorMuted text-fontSizeSm leading-lineHeightNormal line-clamp-3">
-            {description}
-          </p>
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-textColorMuted">Price</p>
+            <p className="text-2xl font-bold text-textColorMain mt-1">{formattedPrice}</p>
+          </div>
         </div>
 
-        {/* Price and Add to Cart Section */}
-        <div className="flex items-end justify-between pt-paddingMedium">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-fontWeightMedium text-textColorMuted uppercase tracking-widest mb-1">Price</span>
-            <span className="text-fontSizeXl font-fontWeightMedium text-textColorMain">
-              ${price}
-            </span>
-          </div>
-          
-          {/* Add to cart Button */}
-          <button 
+        <div className="grid grid-cols-2 gap-2">
+          {onViewDetails ? (
+            <button
+              onClick={onViewDetails}
+              className="h-11 inline-flex items-center justify-center gap-2 rounded-lg border border-borderColor text-textColorMain hover:bg-backgroundColor transition-colors text-sm font-medium"
+              aria-label={`View ${title} details`}
+            >
+              <Eye size={16} />
+              Details
+            </button>
+          ) : (
+            <div />
+          )}
+          <button
             onClick={onAddToCart}
-            className="w-[85px] h-[85px] flex items-center justify-center rounded-borderRadiusLg bg-primaryColor hover:bg-accentColor text-textColorInverse font-fontWeightBold text-fontSizeXs uppercase transition-transform active:scale-95 absolute -bottom-4 -right-4 z-20 group-hover:-translate-y-1 group-hover:-translate-x-1 shadow-md shadow-primaryColor/20"
+            className="h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-primaryColor text-white hover:opacity-90 transition text-sm font-semibold"
             aria-label={`Add ${title} to cart`}
           >
-            <span className="leading-lineHeightTight text-center">Buy<br/>Now</span>
+            <ShoppingCart size={16} />
+            Add
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 

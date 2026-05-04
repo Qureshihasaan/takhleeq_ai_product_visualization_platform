@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
 import ProductCard from "../ui/ProductCard";
 import { productService } from "../../services/productService";
@@ -28,6 +28,7 @@ const getProductImageUrl = (product) => {
 
 const CategoriesPage = () => {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,7 +75,8 @@ const CategoriesPage = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Categories Grid */}
+        {/* Categories Grid (commented: static/non-backend section) */}
+        {/*
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-textColorMain mb-8">
             Browse by Category
@@ -87,7 +89,7 @@ const CategoriesPage = () => {
                 className="group block bg-surfaceColor rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer"
               >
                 {/* Gradient placeholder instead of broken placeholder images */}
-                <div className={`relative h-48 bg-linear-to-br ${category.colorFrom} ${category.colorTo}`}>
+              {/* <div className={`relative h-48 bg-linear-to-br ${category.colorFrom} ${category.colorTo}`}>
                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors" />
                   <div className="absolute bottom-4 left-4 text-white">
                     <h3 className="text-xl font-semibold mb-1">{category.name}</h3>
@@ -102,6 +104,7 @@ const CategoriesPage = () => {
             ))}
           </div>
         </div>
+        */}
 
         {/* Featured Products */}
         <div>
@@ -127,6 +130,7 @@ const CategoriesPage = () => {
                   tags={product.category ? [product.category] : ["Featured"]}
                   description={product.Product_details}
                   price={product.price}
+                  onViewDetails={() => navigate(`/products/${product.product_id}`)}
                   onAddToCart={() => handleAddToCart(product)}
                 />
               ))
@@ -138,7 +142,8 @@ const CategoriesPage = () => {
           </div>
         </div>
 
-        {/* Call to Action */}
+        {/* Call to Action (commented: static/non-backend section) */}
+        {/*
         <div className="mt-16 bg-surfaceColor rounded-lg p-8 text-center">
           <h2 className="text-2xl font-bold text-textColorMain mb-4">
             Can't find what you're looking for?
@@ -153,6 +158,7 @@ const CategoriesPage = () => {
             Visit AI Studio
           </Link>
         </div>
+        */}
       </div>
     </div>
   );

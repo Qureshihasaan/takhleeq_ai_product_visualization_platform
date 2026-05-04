@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import ProductCard from '../ui/ProductCard';
-import TestimonialCard from '../ui/TestimonialCard';
-import { ArrowRight } from 'lucide-react';
 import HeroSection from '../ui/Hero';
 import { productService } from '../../services/productService';
 import { useCart } from '../../hooks/useCart';
@@ -47,6 +46,7 @@ const LandingPage = () => {
   const [products, setProducts] = useState(FALLBACK_PRODUCTS);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -83,7 +83,8 @@ const LandingPage = () => {
       <HeroSection />
       <div className="flex flex-col w-full pb-paddingLarge bg-backgroundColor">
 
-        {/* Section 1: Pre-made Designs */}
+        {/* Section 1: Pre-made Designs (commented: static/non-backend section) */}
+        {/*
         <section className="py-paddingLarge px-paddingLarge max-w-[var(--maxWidthContainer)] mx-auto w-full">
           <div className="flex justify-between items-end mb-marginLarge">
             <h2 className="text-textColorMain">Pre-made Designs</h2>
@@ -114,8 +115,10 @@ const LandingPage = () => {
             ))}
           </div>
         </section>
+        */}
 
-        {/* Section 2: Promo Banner */}
+        {/* Section 2: Promo Banner (commented: static/non-backend section) */}
+        {/*
         <section className="px-paddingLarge mb-marginLarge max-w-[var(--maxWidthContainer)] mx-auto w-full">
           <div className="bg-primaryColor rounded-borderRadiusLg p-paddingLarge flex flex-col items-start gap-marginMedium shadow-boxShadowMedium">
             <span className="bg-textColorInverse text-textColorMain text-fontSizeXs font-fontWeightMedium px-paddingMedium py-paddingSmall rounded-borderRadiusFull uppercase tracking-wide">Limited Offer</span>
@@ -125,6 +128,7 @@ const LandingPage = () => {
             <button className="bg-textColorInverse text-textColorMain px-paddingLarge py-paddingMedium rounded-borderRadiusMd font-fontWeightMedium uppercase text-fontSizeSm mt-marginSmall transition-transform active:scale-95 hover:bg-surfaceColor shadow-boxShadowLow">Claim Now</button>
           </div>
         </section>
+        */}
 
         {/* Section 3: Print Your Reality Grid */}
         <section className="px-paddingLarge py-paddingLarge bg-backgroundColor w-full shadow-boxShadowMedium">
@@ -148,6 +152,7 @@ const LandingPage = () => {
                     tags={product.category ? [product.category] : []}
                     description={product.Product_details}
                     price={product.price}
+                    onViewDetails={() => navigate(`/products/${product.product_id}`)}
                     onAddToCart={() => handleAddToCart(product)}
                   />
                 ))
@@ -156,7 +161,8 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* Section 4: Testimonials */}
+        {/* Section 4: Testimonials (commented: static/non-backend section) */}
+        {/*
         <section className="px-paddingLarge py-paddingLarge max-w-[var(--maxWidthContainer)] mx-auto w-full">
           <div className="mb-marginLarge text-center md:text-left">
             <h2 className="text-textColorMain">Hear from our Creators</h2>
@@ -176,6 +182,7 @@ const LandingPage = () => {
             />
           </div>
         </section>
+        */}
 
       </div>
     </>

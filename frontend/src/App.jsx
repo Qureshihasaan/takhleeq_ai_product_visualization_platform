@@ -10,6 +10,8 @@ import StudioPage from "./components/pages/StudioPage";
 import CartPage from "./components/pages/CartPage";
 import CategoriesPage from "./components/pages/CategoriesPage";
 import MyDesignsPage from "./components/pages/MyDesignsPage";
+import ProductDetailsPage from "./components/pages/ProductDetailsPage";
+import AdminDashboardPage from "./components/pages/AdminDashboardPage";
 import NotificationsPage from "./components/pages/NotificationsPage";
 import SettingsPage from "./components/pages/SettingsPage";
 import ContactPage from "./components/pages/ContactPage";
@@ -18,6 +20,9 @@ import ScrollToTop from "./components/ScrollToTop";
 import AuthGuard from "./components/routing/AuthGuard";
 import AuthInit from "./components/routing/AuthInit";
 import { store } from "./store/store";
+import { injectStore } from "./services/apiClient";
+
+injectStore(store);
 
 const App = () => {
   return (
@@ -32,16 +37,20 @@ const App = () => {
             <Route path="studio" element={
               <AuthGuard>
                 <StudioPage />
-                </AuthGuard>}
+                </AuthGuard>
+                }
                  />
             <Route path="cart" element={<AuthGuard><CartPage /></AuthGuard>} />
             <Route path="categories" element={<AuthGuard><CategoriesPage /></AuthGuard>} />
+            <Route path="products/:productId" element={<AuthGuard><ProductDetailsPage /></AuthGuard>} />
+            <Route path="admin" element={
+              <AuthGuard>
+              <AdminDashboardPage /></AuthGuard>} />
             <Route path="my-designs" element={<AuthGuard><MyDesignsPage /></AuthGuard>} />
             <Route path="notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
             <Route path="settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
             <Route path="contact" element={<ContactPage />} />
             {/* Future microservice routes can be nested here */}
-            {/* <Route path="products/:id" element={<ProductDetails />} /> */}
           </Route>
           {/* Authentication routes */}
           <Route path="/login" element={<LoginPage />} />

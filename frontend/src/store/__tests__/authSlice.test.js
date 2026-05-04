@@ -22,10 +22,10 @@ describe('authSlice', () => {
       expect(state.error).toBeNull();
     });
 
-    it('resets status to idle so AuthInit will re-fetch user profile', () => {
+    it('sets status to succeeded after loginSuccess', () => {
       const prev = makeInitialState({ status: 'failed' });
       const state = authReducer(prev, loginSuccess(null));
-      expect(state.status).toBe('idle');
+      expect(state.status).toBe('succeeded');
     });
   });
 

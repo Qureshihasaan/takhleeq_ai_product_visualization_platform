@@ -8,9 +8,10 @@ export const authService = {
    */
  login: async (userData) => {
   try {
-    // Ensure the payload only contains email and password
+    // Support both username and email for backend /login_json
     const payload = {
-      email: userData.email || "",
+      ...(userData.username ? { username: userData.username } : {}),
+      ...(userData.email ? { email: userData.email } : {}),
       password: userData.password || userData.plain_password || "",
     };
 
@@ -18,7 +19,7 @@ export const authService = {
     return response.data;
   } catch (error) {
     console.error("Login failed:", error);
-    throw error;
+    throw new Error(error.response?.data?.detail || error.message || "Login failed");
   }
 },
 
@@ -27,20 +28,18 @@ export const authService = {
    */
   register: async (userData) => {
     try {
-      console.log(userData);
-      
       const payload = {
         username: userData.username || "",
         email: userData.email || "",
-        plain_password: userData.plain_password || "",
-        role: userData.role || "buyer"
+        plain_password: userData.plain_password || userData.password || "",
+        role: userData.role || "buyer",
       };
       
       const response = await usersApi.post("/Signup", payload);
       return response.data;
     } catch (error) {
       console.error("Registration failed:", error);
-      throw error;
+      throw new Error(error.response?.data?.detail || error.message || "Registration failed");
     }
   },
 

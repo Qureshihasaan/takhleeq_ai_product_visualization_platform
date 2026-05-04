@@ -74,6 +74,21 @@ describe('Sidebar', () => {
     });
   });
 
+  describe('when user is authenticated as seller', () => {
+    const sellerState = {
+      isAuthenticated: true,
+      user: { username: 'seller1', email: 'seller@test.com', role: 'seller' },
+      status: 'succeeded',
+      error: null,
+    };
+
+    it('shows Dashboard link to /admin', () => {
+      renderWithStore(sellerState);
+      const link = screen.getByRole('link', { name: /dashboard/i });
+      expect(link.getAttribute('href')).toBe('/admin');
+    });
+  });
+
   it('renders main navigation links', () => {
     renderWithStore({ isAuthenticated: false, user: null, status: 'idle', error: null });
     expect(screen.getByText('Home')).toBeTruthy();
