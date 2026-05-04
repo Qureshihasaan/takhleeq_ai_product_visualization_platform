@@ -12,6 +12,15 @@ const CartPage = () => {
   const { user } = useSelector((state) => state.auth);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [paymentStatus, setPaymentStatus] = React.useState(null);
+  const pollIntervalRef = React.useRef(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Calculate order totals
   const subtotal = totalPrice;
@@ -31,10 +40,8 @@ const CartPage = () => {
     setPaymentStatus("Creating orders...");
 
     try {
-      const paymentIds = [];
-
-      for (const item of items) {
-        // Order payload — let backend auto-assign order_id and user_id from JWT
+      // Create orders and payments concurrently
+      const orderAndPaymentPromises = items.map(async (item) => {
         const orderPayload = {
           user_email: user.email,
           product_id: item.id,
@@ -47,21 +54,23 @@ const CartPage = () => {
         const orderRes = await orderService.createOrder(orderPayload);
         const createdOrderId = orderRes.order_id ?? orderRes.id;
 
-        // Payment payload — let backend auto-assign payment_id
         const paymentPayload = {
           order_id: createdOrderId,
           amount: item.price * item.quantity,
           status: "Pending",
         };
         const paymentRes = await paymentService.createPayment(paymentPayload);
-        const paymentId = paymentRes.payment_id ?? paymentRes.id;
-        if (paymentId) paymentIds.push(paymentId);
-      }
+        return paymentRes.payment_id ?? paymentRes.id;
+      });
+
+      const paymentIdsResult = await Promise.all(orderAndPaymentPromises);
+      const paymentIds = paymentIdsResult.filter(Boolean);
 
       // Poll for payment status (max 10 attempts × 3s = 30s)
       setPaymentStatus("Waiting for payment confirmation...");
       let attempts = 0;
-      const pollInterval = setInterval(async () => {
+      
+      pollIntervalRef.current = setInterval(async () => {
         attempts++;
         try {
           const statusResponses = await Promise.all(
@@ -72,12 +81,12 @@ const CartPage = () => {
           );
 
           if (allCompleted) {
-            clearInterval(pollInterval);
+            clearInterval(pollIntervalRef.current);
             setPaymentStatus("✅ Payment complete! Order placed successfully.");
             setIsProcessing(false);
             clearCart();
           } else if (attempts >= 10) {
-            clearInterval(pollInterval);
+            clearInterval(pollIntervalRef.current);
             setIsProcessing(false);
             setPaymentStatus(
               "⚠️ Orders created. Payment may take a moment to confirm — check your notifications."

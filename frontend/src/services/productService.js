@@ -7,9 +7,9 @@ export const productService = {
   createProduct: async (productData) => {
     try {
       const formData = new FormData();
-      formData.append("Product_id", productData.product_id || productData.Product_id || 0);
-      formData.append("Product_name", productData.Product_name || productData.product_name || "");
-      formData.append("Product_details", productData.Product_details || productData.product_details || "");
+      formData.append("Product_id", productData.product_id || 0);
+      formData.append("Product_name", productData.Product_name || "");
+      formData.append("Product_details", productData.Product_details || "");
       formData.append("product_quantity", productData.product_quantity || 0);
       formData.append("price", productData.price || 1);
 
