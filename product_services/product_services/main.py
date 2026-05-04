@@ -8,10 +8,12 @@ from typing import Annotated, AsyncGenerator, List, Optional
 from aiokafka import AIOKafkaProducer
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from sqlmodel import select
 
 from . import setting
 from .authenticate import validate_role
+from .cloudinary_service import delete_image, upload_image
 from .consumer import consume_messages
 from .database import Product, Session, create_db_and_tables, get_session
 from .producer import kafka_producer
@@ -82,13 +84,20 @@ async def product_service(
     file: Optional[UploadFile] = File(None),
     category: Optional[str] = Form(None),
 ) -> Product:
-    """Create a new product with an optional image upload (multipart form)."""
+    """Create a new product with optional image upload.
 
-    # Convert uploaded file to base64 if provided
-    product_image_b64 = None
+    If Cloudinary is configured, store secure URL in product_image.
+    Otherwise, fallback to base64 storage for local/dev compatibility.
+    """
+
+    product_image_value = None
     if file:
         file_bytes = await file.read()
-        product_image_b64 = base64.b64encode(file_bytes).decode("utf-8")
+        uploaded_url = upload_image(file_bytes, file.filename)
+        if uploaded_url:
+            product_image_value = uploaded_url
+        else:
+            product_image_value = base64.b64encode(file_bytes).decode("utf-8")
 
     product = Product(
         Product_id=Product_id,
@@ -96,7 +105,7 @@ async def product_service(
         Product_details=Product_details,
         product_quantity=product_quantity,
         price=price,
-        product_image=product_image_b64,
+        product_image=product_image_value,
         category=category,
     )
 
@@ -134,7 +143,16 @@ async def get_product(
     token_data: Annotated[dict, Depends(validate_role(["seller", "admin", "buyer"]))],
 ):
     products = session.exec(select(Product)).all()
-    return products
+    # Keep client compatibility: if DB stores URL, force clients to use /image endpoint.
+    sanitized_products = []
+    for p in products:
+        if p.product_image and p.product_image.startswith("http"):
+            product_data = p.dict()
+            product_data["product_image"] = None
+            sanitized_products.append(Product(**product_data))
+        else:
+            sanitized_products.append(p)
+    return sanitized_products
 
 
 @app.put("/product/{product_id}", response_model=Product)
@@ -179,6 +197,9 @@ async def delete_product(
     product_dict = {field: getattr(db_product, field) for field in db_product.dict()}
     product_json = json.dumps(product_dict).encode("utf-8")
     print("product_json", product_json)
+    if db_product.product_image and db_product.product_image.startswith("http"):
+        delete_image(db_product.product_image)
+
     session.delete(db_product)
     session.commit()
     try:
@@ -199,7 +220,11 @@ async def get_product_image(
     session: Session = Depends(get_session),
     token_data: dict = Depends(validate_role(["seller", "admin", "buyer"])),
 ):
-    """Get the base64-encoded image for a product."""
+    """Get product image.
+
+    - If stored value is a Cloudinary URL, redirect to it.
+    - If stored value is base64, return JSON payload for backward compatibility.
+    """
     db_product = session.get(Product, product_id)
     if not db_product:
         raise HTTPException(status_code=404, detail="Product Not Found")
@@ -208,10 +233,10 @@ async def get_product_image(
             status_code=404, detail="No image uploaded for this product"
         )
 
-    return {
-        "product_id": product_id,
-        "product_image": db_product.product_image,
-    }
+    if db_product.product_image.startswith("http"):
+        return RedirectResponse(url=db_product.product_image)
+
+    return {"product_id": product_id, "product_image": db_product.product_image}
 
 
 @app.get("/health")

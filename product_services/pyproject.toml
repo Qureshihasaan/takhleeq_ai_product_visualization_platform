@@ -24,6 +24,7 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "pydantic>=2.0.0",
     "python-multipart>=0.0.22",
+    "cloudinary>=1.40.0",
 ]
 
 [project.scripts]

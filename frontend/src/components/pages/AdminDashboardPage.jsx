@@ -5,6 +5,19 @@ import { authService } from "../../services/authService";
 import { productService } from "../../services/productService";
 import { orderService } from "../../services/orderService";
 
+const PRODUCTS_BASE_URL =
+  import.meta.env.VITE_PRODUCTS_API_URL || "http://localhost:8000";
+
+const getProductImageUrl = (product) => {
+  if (product?.product_image) {
+    return `data:image/png;base64,${product.product_image}`;
+  }
+  if (product?.product_id) {
+    return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image`;
+  }
+  return "";
+};
+
 const StatCard = ({ label, value }) => (
   <div className="rounded-borderRadiusLg border border-borderColor bg-surfaceColor p-4">
     <p className="text-textColorMuted text-sm">{label}</p>
@@ -51,7 +64,9 @@ const AdminDashboardPage = () => {
     product_quantity: 1,
     price: 1,
     category: "",
+    file: null,
   });
+  const [createImageInputKey, setCreateImageInputKey] = useState(0);
   const [orderStatusEdits, setOrderStatusEdits] = useState({});
   const [health, setHealth] = useState({
     users: false,
@@ -162,7 +177,9 @@ const AdminDashboardPage = () => {
         product_quantity: 1,
         price: 1,
         category: "",
+        file: null,
       });
+      setCreateImageInputKey((prev) => prev + 1);
       await loadDashboardData();
       setActionFeedback("Product created successfully.");
     } catch (err) {
@@ -418,7 +435,7 @@ const AdminDashboardPage = () => {
               <h2 className="text-lg text-textColorMain mb-3">Create Product</h2>
               <form
                 onSubmit={handleCreateProduct}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3"
               >
                 <input
                   value={newProduct.Product_name}
@@ -484,7 +501,19 @@ const AdminDashboardPage = () => {
                   placeholder="Category"
                   className="bg-backgroundColor border border-borderColor rounded px-3 py-2 text-sm"
                 />
-                <div className="md:col-span-2 lg:col-span-5">
+                <input
+                  key={createImageInputKey}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setNewProduct((prev) => ({
+                      ...prev,
+                      file: e.target.files?.[0] || null,
+                    }))
+                  }
+                  className="bg-backgroundColor border border-borderColor rounded px-3 py-2 text-sm"
+                />
+                <div className="md:col-span-2 lg:col-span-6">
                   <button
                     type="submit"
                     disabled={busyKey === "product-create"}
@@ -583,7 +612,16 @@ const AdminDashboardPage = () => {
                       </div>
                     ) : (
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={getProductImageUrl(product)}
+                            alt={product.Product_name}
+                            className="h-12 w-12 rounded-md object-cover border border-borderColor"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                          <div>
                           <p className="text-textColorMain text-sm">
                             {product.Product_name}
                           </p>
@@ -592,6 +630,7 @@ const AdminDashboardPage = () => {
                             {Number(product.price || 0).toFixed(2)} | Category:{" "}
                             {product.category || "N/A"}
                           </p>
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <button
