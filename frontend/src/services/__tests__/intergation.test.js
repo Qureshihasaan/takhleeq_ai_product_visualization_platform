@@ -4,6 +4,8 @@ import { productService } from "../productService";
 import { inventoryService } from "../inventoryService";
 import { aiDesignService } from "../aiDesignService";
 
+const runIntegration = process.env.RUN_INTEGRATION_TESTS === "true";
+
 describe("Microservices Cross-Service Integration", () => {
   let token = "";
   const testProductId = 999;
@@ -15,7 +17,7 @@ describe("Microservices Cross-Service Integration", () => {
   });
 
   // Users Service (Port 8002)
-  it("should authenticate with Users Service", async () => {
+  it.skipIf(!runIntegration)("should authenticate with Users Service", async () => {
     try {
       const loginPayload = { username: "hasaan", password: "abcd9197" };
       const res = await authService.login(loginPayload);
@@ -26,7 +28,7 @@ describe("Microservices Cross-Service Integration", () => {
     } catch (error) {
       throw new Error(error.message || "Authentication failed");
     }
-  });
+  }, 15000);
 
   // Products (Port 8000) & Inventory (Port 8001) Sync
   it.skip("should reflect a new product in the Inventory service", async () => {

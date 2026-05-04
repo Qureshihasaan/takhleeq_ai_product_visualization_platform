@@ -92,7 +92,7 @@ describe("API service request validation", () => {
     vi.clearAllMocks();
   });
 
-  it("authService.login sends non-empty username and password values", async () => {
+  it("authService.login sends JSON payload to /login_json", async () => {
     usersApi.post.mockResolvedValue({ data: { access_token: "token" } });
 
     const payload = { username: "test-user", password: "secret" };
@@ -100,17 +100,10 @@ describe("API service request validation", () => {
 
     expect(result).toEqual({ access_token: "token" });
     expect(usersApi.post).toHaveBeenCalledTimes(1);
-    expect(usersApi.post).toHaveBeenCalledWith(
-      "/login",
-      expect.any(URLSearchParams),
-      expect.objectContaining({
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      }),
-    );
-
-    const body = usersApi.post.mock.calls[0][1];
-    expect(body.get("username")).toBe("test-user");
-    expect(body.get("password")).toBe("secret");
+    expect(usersApi.post).toHaveBeenCalledWith("/login_json", {
+      username: "test-user",
+      password: "secret",
+    });
   });
 
   it("authService.register sends a complete registration payload", async () => {

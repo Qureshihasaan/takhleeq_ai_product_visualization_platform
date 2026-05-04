@@ -8,9 +8,10 @@ export const authService = {
    */
  login: async (userData) => {
   try {
-    // Ensure the payload only contains email and password
+    // Support both username and email for backend /login_json
     const payload = {
-      email: userData.email || "",
+      ...(userData.username ? { username: userData.username } : {}),
+      ...(userData.email ? { email: userData.email } : {}),
       password: userData.password || userData.plain_password || "",
     };
 
@@ -31,7 +32,7 @@ export const authService = {
         username: userData.username || "",
         email: userData.email || "",
         plain_password: userData.plain_password || userData.password || "",
-        role: userData.role
+        role: userData.role || "buyer",
       };
       
       const response = await usersApi.post("/Signup", payload);
