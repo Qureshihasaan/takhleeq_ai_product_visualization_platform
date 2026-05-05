@@ -6,33 +6,6 @@ import HeroSection from '../ui/Hero';
 import { productService } from '../../services/productService';
 import { useCart } from '../../hooks/useCart';
 
-// Fallback products for when the API is not available
-const FALLBACK_PRODUCTS = [
-  {
-    product_id: 1,
-    Product_name: "AI T-Shirt",
-    price: 29.99,
-    product_image: null,
-    category: "Cotton",
-    Product_details: "Premium organic cotton with AI prints."
-  },
-  {
-    product_id: 2,
-    Product_name: "Heavy Hoodie",
-    price: 54.99,
-    product_image: null,
-    category: "Winter",
-    Product_details: "Heavyweight fleece for bold designs."
-  },
-  {
-    product_id: 3,
-    Product_name: "Ceramic Mug",
-    price: 18.50,
-    product_image: null,
-    category: "White",
-    Product_details: "Dishwasher safe custom ceramic mugs."
-  }
-];
 
 const PRODUCTS_BASE_URL = import.meta.env.VITE_PRODUCTS_API_URL || 'http://localhost:8000';
 
@@ -52,7 +25,7 @@ const getProductPrice = (product) => Number(product?.price ?? product?.Price ?? 
 const getProductCategory = (product) => product?.category ?? product?.Category ?? "";
 
 const LandingPage = () => {
-  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -64,11 +37,11 @@ const LandingPage = () => {
         if (data && Array.isArray(data) && data.length > 0) {
           setProducts(data);
         } else {
-          setProducts(FALLBACK_PRODUCTS);
+          setProducts([]);
         }
       } catch (error) {
-        console.warn("Using fallback products due to API fetch error.");
-        setProducts(FALLBACK_PRODUCTS);
+        console.warn("Failed to fetch products from Product API.", error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -142,7 +115,7 @@ const LandingPage = () => {
 
         {/* Section 3: Print Your Reality Grid */}
         <section className="px-paddingLarge py-paddingLarge bg-backgroundColor w-full shadow-boxShadowMedium">
-          <div className="max-w-[var(--maxWidthContainer)] mx-auto">
+          <div className="max-w-(--maxWidthContainer) mx-auto">
             <div className="mb-marginLarge">
               <h2 className="text-textColorMain">
                 Print Your <span className="text-primaryColor">Reality</span>
