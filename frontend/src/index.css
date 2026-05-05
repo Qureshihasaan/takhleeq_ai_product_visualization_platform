@@ -4,17 +4,17 @@
   /* Colors */
   --color-primaryColor: #EBB924;
   --color-secondaryColor: #1a1a1a;
-  --color-accentColor: #f59e0b;
-  --color-successColor: #10b981;
-  --color-warningColor: #f59e0b;
-  --color-errorColor: #ef4444;
-  --color-infoColor: #3b82f6;
+  --color-accentColor: #EBB924;
+  --color-successColor: #EBB924;
+  --color-warningColor: #EBB924;
+  --color-errorColor: #EBB924;
+  --color-infoColor: #EBB924;
   --color-backgroundColor: #000000;
-  --color-surfaceColor: #18181b; /* zinc-900 */
+  --color-surfaceColor: #101010;
   --color-textColorMain: #ffffff;
-  --color-textColorMuted: #a1a1aa; /* zinc-400 */
+  --color-textColorMuted: #9a9a9a;
   --color-textColorInverse: #000000;
-  --color-borderColor: #27272a; /* zinc-800 */
+  --color-borderColor: #2a2a2a;
   --color-focusRingColor: #EBB924;
 
   /* Spacing */

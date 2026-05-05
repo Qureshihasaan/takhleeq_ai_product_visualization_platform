@@ -1,16 +1,55 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Bell, Sparkles, AlertCircle, ShoppingBag, Check } from "lucide-react";
+import { notificationService } from "../../services/notificationService";
 
-const notifications = [
-  { id: 1, type: "system", title: "New Feature Alert", desc: "We just rolled out the v2 of our AI Generation Studio. Try to create ultra-realistic portraits now!", time: "2m ago", unread: true, icon: Sparkles, color: "text-primaryColor", bg: "bg-primaryColor/10" },
-  { id: 2, type: "order", title: "Order Shipped", desc: "Your order #TX9321 is on its way. Track your package dynamically on the orders page.", time: "2h ago", unread: true, icon: ShoppingBag, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { id: 3, type: "alert", title: "Account Security", desc: "A new login was detected from a new device in California, US. Please review if this was you.", time: "1d ago", unread: false, icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/10" },
-  { id: 4, type: "system", title: "Welcome to Target Takhleeq", desc: "Explore our categories, get inspired, and let AI build your perfect customized masterpiece.", time: "3d ago", unread: false, icon: Bell, color: "text-textColorMuted", bg: "bg-surfaceColor" },
-];
+const TYPE_META = {
+  system: { icon: Sparkles, color: "text-primaryColor", bg: "bg-primaryColor/10" },
+  order: { icon: ShoppingBag, color: "text-primaryColor", bg: "bg-primaryColor/10" },
+  alert: { icon: AlertCircle, color: "text-primaryColor", bg: "bg-primaryColor/10" },
+  default: { icon: Bell, color: "text-primaryColor", bg: "bg-black" },
+};
 
 const NotificationsPage = () => {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setError(null);
+        const data = await notificationService.getNotifications();
+        setNotifications(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to fetch notifications:", err);
+        setError("Could not load notifications from notification service.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  const mappedNotifications = useMemo(
+    () =>
+      notifications.map((notif, index) => {
+        const type = notif.type || "default";
+        const meta = TYPE_META[type] || TYPE_META.default;
+        return {
+          id: notif.id ?? `notification-${index}`,
+          title: notif.title || "Notification",
+          desc: notif.desc || notif.message || "No details provided.",
+          time: notif.time || "Recently",
+          unread: notif.unread ?? true,
+          ...meta,
+        };
+      }),
+    [notifications]
+  );
+
   return (
-    <div className="min-h-screen bg-backgroundColor p-paddingLarge">
+    <div className="min-h-screen bg-black p-paddingLarge">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-marginLarge border-b border-borderColor pb-paddingMedium">
           <div>
@@ -26,13 +65,21 @@ const NotificationsPage = () => {
         </div>
 
         <div className="space-y-4">
-          {notifications.map((notif) => {
+          {loading && (
+            <div className="text-center py-12 text-textColorMuted">Loading notifications...</div>
+          )}
+
+          {!loading && error && (
+            <div className="text-center py-12 text-primaryColor">{error}</div>
+          )}
+
+          {!loading && !error && mappedNotifications.map((notif) => {
             const Icon = notif.icon;
             return (
               <div 
                 key={notif.id} 
                 className={`flex gap-4 p-paddingLarge rounded-borderRadiusLg border transition-all duration-300 hover:shadow-md
-                  ${notif.unread ? "bg-surfaceColor border-primaryColor/30 shadow-primaryColor/5" : "bg-backgroundColor border-borderColor"}
+                  ${notif.unread ? "bg-black border-primaryColor/30 shadow-primaryColor/5" : "bg-black border-borderColor"}
                 `}
               >
                 <div className={`mt-1 shrink-0 w-12 h-12 rounded-borderRadiusFull flex items-center justify-center ${notif.bg}`}>
@@ -58,7 +105,7 @@ const NotificationsPage = () => {
             );
           })}
           
-          {notifications.length === 0 && (
+          {!loading && !error && mappedNotifications.length === 0 && (
              <div className="text-center py-20 text-textColorMuted">
                  <Bell size={48} className="mx-auto mb-4 opacity-50" />
                  <p className="text-lg">You're all caught up!</p>

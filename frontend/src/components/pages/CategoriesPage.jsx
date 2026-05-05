@@ -2,19 +2,34 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
 import ProductCard from "../ui/ProductCard";
+import ProductCardSkeleton from "../ui/ProductCardSkeleton";
 import { productService } from "../../services/productService";
 
-// Static categories UI data (backend only returns category names as strings, no metadata)
-const CATEGORIES_UI = [
-  { id: "abstract", name: "Abstract Art", description: "Contemporary abstract designs and patterns", colorFrom: "from-purple-600", colorTo: "to-pink-500" },
-  { id: "nature", name: "Nature & Landscape", description: "Beautiful natural scenes and landscapes", colorFrom: "from-green-600", colorTo: "to-teal-400" },
-  { id: "urban", name: "Urban Architecture", description: "Modern cityscapes and architectural designs", colorFrom: "from-slate-600", colorTo: "to-blue-500" },
-  { id: "portraits", name: "Portraits", description: "AI-generated portraits and character art", colorFrom: "from-amber-500", colorTo: "to-orange-400" },
-  { id: "animals", name: "Animals & Wildlife", description: "Stunning wildlife and animal photography", colorFrom: "from-emerald-600", colorTo: "to-lime-400" },
-  { id: "space", name: "Space & Cosmos", description: "Cosmic scenes and astronomical art", colorFrom: "from-indigo-700", colorTo: "to-violet-500" },
-  { id: "minimalist", name: "Minimalist", description: "Clean, simple, and elegant designs", colorFrom: "from-gray-700", colorTo: "to-gray-400" },
-  { id: "vintage", name: "Vintage & Retro", description: "Classic and retro-style artwork", colorFrom: "from-yellow-700", colorTo: "to-amber-400" },
-  { id: "fantasy", name: "Fantasy & Mythical", description: "Magical and fantasy-themed art", colorFrom: "from-rose-600", colorTo: "to-fuchsia-500" },
+const FALLBACK_PRODUCTS = [
+  {
+    product_id: 1,
+    Product_name: "AI T-Shirt",
+    price: 2999,
+    product_image: null,
+    category: "Cotton",
+    Product_details: "Premium organic cotton with AI prints.",
+  },
+  {
+    product_id: 2,
+    Product_name: "Heavy Hoodie",
+    price: 5499,
+    product_image: null,
+    category: "Winter",
+    Product_details: "Heavyweight fleece for bold designs.",
+  },
+  {
+    product_id: 3,
+    Product_name: "Ceramic Mug",
+    price: 1850,
+    product_image: null,
+    category: "White",
+    Product_details: "Dishwasher safe custom ceramic mugs.",
+  },
 ];
 
 const PRODUCTS_BASE_URL = import.meta.env.VITE_PRODUCTS_API_URL || 'http://localhost:8000';
@@ -26,22 +41,35 @@ const getProductImageUrl = (product) => {
   return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image`;
 };
 
+const getProductId = (product) => product?.product_id ?? product?.Product_id ?? product?.id;
+const getProductName = (product) =>
+  product?.Product_name ?? product?.product_name ?? product?.name ?? "Unnamed Product";
+const getProductDescription = (product) =>
+  product?.Product_details ?? product?.product_details ?? product?.description ?? "No description available.";
+const getProductPrice = (product) => Number(product?.price ?? product?.Price ?? 0);
+const getProductCategory = (product) => product?.category ?? product?.Category ?? "";
+
 const CategoriesPage = () => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setError(null);
         const data = await productService.getAllProducts();
-        setProducts(Array.isArray(data) ? data : []);
+        if (Array.isArray(data) && data.length > 0) {
+          setProducts(data);
+        } else {
+          setProducts(FALLBACK_PRODUCTS);
+        }
       } catch (err) {
-        console.error("Error fetching products:", err);
-        setError("Failed to load products. Please try again later.");
+        console.warn("Using fallback products due to API fetch error.", err);
+        setProducts(FALLBACK_PRODUCTS);
       } finally {
         setLoading(false);
       }
@@ -50,19 +78,34 @@ const CategoriesPage = () => {
   }, []);
 
   const handleAddToCart = (product) => {
+    const productId = getProductId(product);
     addToCart({
-      id: product.product_id,
-      name: product.Product_name,
-      price: product.price,
+      id: productId,
+      name: getProductName(product),
+      price: getProductPrice(product),
       image: getProductImageUrl(product),
       quantity: 1,
     });
   };
 
+  const availableCategories = [
+    "All",
+    ...new Set(
+      products
+        .map((product) => getProductCategory(product))
+        .filter((category) => typeof category === "string" && category.trim())
+    ),
+  ];
+
+  const filteredProducts =
+    selectedCategory === "All"
+      ? products
+      : products.filter((product) => getProductCategory(product) === selectedCategory);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       {/* Hero Section */}
-      <div className="relative bg-linear-to-r from-primaryColor to-accentColor py-16 px-4 sm:px-6 lg:px-8">
+      <div className="relative bg-black border-b border-borderColor py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-white mb-4">
             Explore Categories
@@ -112,31 +155,51 @@ const CategoriesPage = () => {
             Featured Products
           </h2>
 
+          <div className="mb-8 flex flex-wrap gap-3">
+            {availableCategories.map((category) => {
+              const isActive = selectedCategory === category;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-full border text-sm transition ${
+                    isActive
+                      ? "bg-primaryColor text-black border-primaryColor"
+                      : "bg-black text-textColorMuted border-borderColor hover:border-primaryColor/50 hover:text-primaryColor"
+                  }`}
+                >
+                  {category}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {loading ? (
-              <div className="col-span-full py-12 flex justify-center items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primaryColor"></div>
-              </div>
+              Array.from({ length: 8 }).map((_, index) => (
+                <ProductCardSkeleton key={`categories-product-skeleton-${index}`} />
+              ))
             ) : error ? (
-              <div className="col-span-full text-center py-12 text-red-500">
+              <div className="col-span-full text-center py-12 text-primaryColor">
                 {error}
               </div>
-            ) : products.length > 0 ? (
-              products.map((product) => (
+            ) : filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
                 <ProductCard
-                  key={product.product_id}
+                  key={getProductId(product)}
                   image={getProductImageUrl(product)}
-                  title={product.Product_name}
-                  tags={product.category ? [product.category] : ["Featured"]}
-                  description={product.Product_details}
-                  price={product.price}
-                  onViewDetails={() => navigate(`/products/${product.product_id}`)}
+                  title={getProductName(product)}
+                  tags={getProductCategory(product) ? [getProductCategory(product)] : ["Featured"]}
+                  description={getProductDescription(product)}
+                  price={getProductPrice(product)}
+                  onViewDetails={() => navigate(`/products/${getProductId(product)}`)}
                   onAddToCart={() => handleAddToCart(product)}
                 />
               ))
             ) : (
               <div className="col-span-full text-center py-12 text-textColorMuted">
-                No products found
+                No products found in this category
               </div>
             )}
           </div>
