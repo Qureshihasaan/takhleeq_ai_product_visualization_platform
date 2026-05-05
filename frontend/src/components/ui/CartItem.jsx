@@ -2,10 +2,13 @@ import React from "react";
 import { Minus, Plus, X } from "lucide-react";
 
 const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
+  const unitPrice = Number(item.price || 0);
+  const formattedPrice = `Rs. ${unitPrice.toLocaleString("en-PK")}`;
+
   return (
     <div className="flex gap-4 p-4 border-b border-borderColor last:border-b-0">
       {/* Product Image */}
-      <div className="w-20 h-20 bg-surfaceColor rounded-lg overflow-hidden shrink-0">
+      <div className="w-20 h-20 bg-black border border-borderColor rounded-lg overflow-hidden shrink-0">
         <img
           src={item.image}
           alt={item.name}
@@ -29,13 +32,13 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
         </div>
 
         {/* Price */}
-        <p className="font-semibold text-primaryColor mt-2">${item.price}</p>
+        <p className="font-semibold text-primaryColor mt-2">{formattedPrice}</p>
       </div>
 
       {/* Quantity and Remove */}
       <div className="flex flex-col items-end gap-2">
         {/* Quantity Selector */}
-        <div className="flex items-center gap-1 bg-surfaceColor rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-black border border-borderColor rounded-lg p-1">
           <button
             onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
             className="p-1 hover:bg-backgroundColor rounded transition-colors"
@@ -57,7 +60,7 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
         {/* Remove Button */}
         <button
           onClick={() => onRemove(item.id)}
-          className="p-1 hover:text-red-500 transition-colors"
+          className="p-1 hover:text-primaryColor transition-colors"
         >
           <X size={16} className="text-textColorMuted" />
         </button>

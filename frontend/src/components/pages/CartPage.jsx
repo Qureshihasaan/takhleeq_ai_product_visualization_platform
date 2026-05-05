@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useCart } from "../../hooks/useCart";
 import { useSelector } from "react-redux";
 import CartItem from "../ui/CartItem";
@@ -11,16 +12,6 @@ const CartPage = () => {
   const { items, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
   const { user } = useSelector((state) => state.auth);
   const [isProcessing, setIsProcessing] = React.useState(false);
-  const [paymentStatus, setPaymentStatus] = React.useState(null);
-  const pollIntervalRef = React.useRef(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-    };
-  }, []);
 
   // Calculate order totals
   const subtotal = totalPrice;
@@ -28,88 +19,138 @@ const CartPage = () => {
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const handleCheckout = async () => {
     if (!user) {
-      alert("Please login to checkout");
+      toast.error("Please login to checkout.");
       return;
     }
 
-    if (items.length === 0) return;
+    if (items.length === 0) {
+      toast.error("Your cart is empty.");
+      return;
+    }
 
     setIsProcessing(true);
-    setPaymentStatus("Creating orders...");
+    const loadingToastId = toast.loading("Creating your order...");
 
     try {
-      // Create orders and payments concurrently
-      const orderAndPaymentPromises = items.map(async (item) => {
-        const orderPayload = {
-          user_email: user.email,
-          product_id: item.id,
-          total_amount: Math.round(item.price * item.quantity),
-          product_quantity: item.quantity,
-          product_price: Math.round(item.price),
-          payment_status: "Pending",
-        };
+      const orderCreationResults = await Promise.allSettled(
+        items.map(async (item) => {
+          const orderPayload = {
+            user_email: user.email,
+            product_id: item.id,
+            total_amount: Math.round(item.price * item.quantity),
+            product_quantity: item.quantity,
+            product_price: Math.round(item.price),
+            payment_status: "Pending",
+          };
 
-        const orderRes = await orderService.createOrder(orderPayload);
-        const createdOrderId = orderRes.order_id ?? orderRes.id;
+          const orderRes = await orderService.createOrder(orderPayload);
+          return {
+            item,
+            orderId: orderRes.order_id ?? orderRes.id,
+          };
+        })
+      );
 
-        const paymentPayload = {
-          order_id: createdOrderId,
-          amount: item.price * item.quantity,
-          status: "Pending",
-        };
-        const paymentRes = await paymentService.createPayment(paymentPayload);
-        return paymentRes.payment_id ?? paymentRes.id;
-      });
+      const successfulOrders = orderCreationResults
+        .filter((result) => result.status === "fulfilled")
+        .map((result) => result.value);
+      const failedOrderCount = orderCreationResults.length - successfulOrders.length;
 
-      const paymentIdsResult = await Promise.all(orderAndPaymentPromises);
-      const paymentIds = paymentIdsResult.filter(Boolean);
+      if (successfulOrders.length === 0) {
+        throw new Error("Unable to create any order. Please try again.");
+      }
 
-      // Poll for payment status (max 10 attempts × 3s = 30s)
-      setPaymentStatus("Waiting for payment confirmation...");
-      let attempts = 0;
-      
-      pollIntervalRef.current = setInterval(async () => {
-        attempts++;
-        try {
-          const statusResponses = await Promise.all(
-            paymentIds.map((id) => paymentService.getSinglePayment(id))
-          );
-          const allCompleted = statusResponses.every(
-            (res) => res.status === "Completed"
-          );
+      if (failedOrderCount > 0) {
+        toast.dismiss(loadingToastId);
+        toast.error(
+          `${failedOrderCount} item(s) failed during order creation. Please retry checkout for remaining items.`
+        );
+        return;
+      }
 
-          if (allCompleted) {
-            clearInterval(pollIntervalRef.current);
-            setPaymentStatus("✅ Payment complete! Order placed successfully.");
-            setIsProcessing(false);
-            clearCart();
-          } else if (attempts >= 10) {
-            clearInterval(pollIntervalRef.current);
-            setIsProcessing(false);
-            setPaymentStatus(
-              "⚠️ Orders created. Payment may take a moment to confirm — check your notifications."
-            );
+      const paymentCreationResults = await Promise.allSettled(
+        successfulOrders.map(async ({ item, orderId }) => {
+          if (!orderId) {
+            return null;
           }
-        } catch (err) {
-          console.error("Polling error", err);
+
+          const paymentPayload = {
+            order_id: orderId,
+            amount: item.price * item.quantity,
+            status: "Pending",
+          };
+          const paymentRes = await paymentService.createPayment(paymentPayload);
+          return paymentRes.payment_id ?? paymentRes.id;
+        })
+      );
+
+      const paymentIds = paymentCreationResults
+        .filter((result) => result.status === "fulfilled" && result.value)
+        .map((result) => result.value);
+      const failedPaymentCount = paymentCreationResults.length - paymentIds.length;
+
+      // Orders are already created at this point, so confirm success even if payment APIs are delayed/failing.
+      if (paymentIds.length === 0) {
+        toast.dismiss(loadingToastId);
+        clearCart();
+        toast.success("Order placed successfully. Confirmation sent to your email.");
+        if (failedPaymentCount > 0) {
+          toast("Payment confirmation is pending. Check notifications shortly.", {
+            icon: "⚠️",
+          });
         }
-      }, 3000);
+        return;
+      }
+
+      let allCompleted = false;
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const statusResponses = await Promise.allSettled(
+          paymentIds.map((id) => paymentService.getSinglePayment(id))
+        );
+        const successfulStatuses = statusResponses
+          .filter((response) => response.status === "fulfilled")
+          .map((response) => response.value);
+
+        allCompleted =
+          successfulStatuses.length > 0 &&
+          successfulStatuses.every((res) => res.status === "Completed");
+        if (allCompleted) {
+          break;
+        }
+        await sleep(3000);
+      }
+
+      toast.dismiss(loadingToastId);
+      clearCart();
+      if (allCompleted) {
+        toast.success("Payment complete. Order placed successfully.");
+      } else {
+        toast.success("Order placed successfully. Confirmation sent to your email.");
+        toast("Payment may take a moment to confirm. Check notifications.", {
+          icon: "⚠️",
+        });
+      }
     } catch (error) {
       console.error("Checkout failed", error);
+      toast.dismiss(loadingToastId);
       const msg =
         error?.response?.data?.detail ||
+        error?.message ||
         "Checkout failed. Please try again.";
-      setPaymentStatus(`❌ ${msg}`);
+      toast.error(msg);
+    } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       {/* Breadcrumb */}
-      <div className="bg-surfaceColor py-4 px-4 sm:px-6 lg:px-8">
+      <div className="bg-black border-b border-borderColor py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <nav className="flex text-sm text-textColorMuted">
             <Link to="/" className="hover:text-primaryColor transition-colors">
@@ -136,7 +177,7 @@ const CartPage = () => {
         {items.length === 0 ? (
           // Empty Cart State
           <div className="text-center py-16">
-            <div className="w-24 h-24 bg-surfaceColor rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-24 h-24 bg-black border border-borderColor rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-12 h-12 text-textColorMuted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
@@ -147,7 +188,7 @@ const CartPage = () => {
             </p>
             <Link
               to="/categories"
-              className="inline-block bg-primaryColor text-white px-6 py-3 rounded-lg font-semibold hover:bg-primaryColor/90 transition-colors"
+              className="inline-block bg-primaryColor text-black px-6 py-3 rounded-lg font-semibold hover:bg-primaryColor/90 transition-colors"
             >
               Start Shopping
             </Link>
@@ -157,7 +198,7 @@ const CartPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items Section */}
             <div className="lg:col-span-2">
-              <div className="bg-surfaceColor rounded-lg">
+              <div className="bg-black border border-borderColor rounded-lg">
                 <div className="p-6 border-b border-borderColor">
                   <h2 className="text-lg font-semibold text-textColorMain">Cart Items</h2>
                 </div>
@@ -184,16 +225,6 @@ const CartPage = () => {
                 onCheckout={handleCheckout}
                 disabled={isProcessing}
               />
-              {paymentStatus && (
-                <div className="mt-4 p-4 rounded-lg bg-surfaceColor border border-borderColor text-sm text-center">
-                  <p className="text-primaryColor font-medium flex items-center justify-center gap-2">
-                    {isProcessing && (
-                      <span className="animate-spin h-4 w-4 border-2 border-primaryColor border-t-transparent rounded-full" />
-                    )}
-                    {paymentStatus}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         )}

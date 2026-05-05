@@ -1,37 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import ProductCard from '../ui/ProductCard';
+import ProductCardSkeleton from "../ui/ProductCardSkeleton";
 import HeroSection from '../ui/Hero';
 import { productService } from '../../services/productService';
 import { useCart } from '../../hooks/useCart';
 
-// Fallback products for when the API is not available
-const FALLBACK_PRODUCTS = [
-  {
-    product_id: 1,
-    Product_name: "AI T-Shirt",
-    price: 29.99,
-    product_image: null,
-    category: "Cotton",
-    Product_details: "Premium organic cotton with AI prints."
-  },
-  {
-    product_id: 2,
-    Product_name: "Heavy Hoodie",
-    price: 54.99,
-    product_image: null,
-    category: "Winter",
-    Product_details: "Heavyweight fleece for bold designs."
-  },
-  {
-    product_id: 3,
-    Product_name: "Ceramic Mug",
-    price: 18.50,
-    product_image: null,
-    category: "White",
-    Product_details: "Dishwasher safe custom ceramic mugs."
-  }
-];
 
 const PRODUCTS_BASE_URL = import.meta.env.VITE_PRODUCTS_API_URL || 'http://localhost:8000';
 
@@ -42,8 +16,16 @@ const getProductImageUrl = (product) => {
   return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image`;
 };
 
+const getProductId = (product) => product?.product_id ?? product?.Product_id ?? product?.id;
+const getProductName = (product) =>
+  product?.Product_name ?? product?.product_name ?? product?.name ?? "Unnamed Product";
+const getProductDescription = (product) =>
+  product?.Product_details ?? product?.product_details ?? product?.description ?? "No description available.";
+const getProductPrice = (product) => Number(product?.price ?? product?.Price ?? 0);
+const getProductCategory = (product) => product?.category ?? product?.Category ?? "";
+
 const LandingPage = () => {
-  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -55,11 +37,11 @@ const LandingPage = () => {
         if (data && Array.isArray(data) && data.length > 0) {
           setProducts(data);
         } else {
-          setProducts(FALLBACK_PRODUCTS);
+          setProducts([]);
         }
       } catch (error) {
-        console.warn("Using fallback products due to API fetch error.");
-        setProducts(FALLBACK_PRODUCTS);
+        console.warn("Failed to fetch products from Product API.", error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -69,10 +51,11 @@ const LandingPage = () => {
   }, []);
 
   const handleAddToCart = (product) => {
+    const productId = getProductId(product);
     addToCart({
-      id: product.product_id,
-      name: product.Product_name,
-      price: product.price,
+      id: productId,
+      name: getProductName(product),
+      price: getProductPrice(product),
       image: getProductImageUrl(product),
       quantity: 1,
     });
@@ -132,7 +115,7 @@ const LandingPage = () => {
 
         {/* Section 3: Print Your Reality Grid */}
         <section className="px-paddingLarge py-paddingLarge bg-backgroundColor w-full shadow-boxShadowMedium">
-          <div className="max-w-[var(--maxWidthContainer)] mx-auto">
+          <div className="max-w-(--maxWidthContainer) mx-auto">
             <div className="mb-marginLarge">
               <h2 className="text-textColorMain">
                 Print Your <span className="text-primaryColor">Reality</span>
@@ -142,17 +125,19 @@ const LandingPage = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-paddingLarge">
               {loading ? (
-                <div className="col-span-full text-textColorMuted text-center py-paddingLarge font-fontWeightMedium tracking-wide">Loading products...</div>
+                Array.from({ length: 6 }).map((_, index) => (
+                  <ProductCardSkeleton key={`landing-product-skeleton-${index}`} />
+                ))
               ) : (
                 products.map((product) => (
                   <ProductCard
-                    key={product.product_id}
+                    key={getProductId(product)}
                     image={getProductImageUrl(product)}
-                    title={product.Product_name}
-                    tags={product.category ? [product.category] : []}
-                    description={product.Product_details}
-                    price={product.price}
-                    onViewDetails={() => navigate(`/products/${product.product_id}`)}
+                    title={getProductName(product)}
+                    tags={getProductCategory(product) ? [getProductCategory(product)] : []}
+                    description={getProductDescription(product)}
+                    price={getProductPrice(product)}
+                    onViewDetails={() => navigate(`/products/${getProductId(product)}`)}
                     onAddToCart={() => handleAddToCart(product)}
                   />
                 ))

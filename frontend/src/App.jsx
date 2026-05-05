@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Toaster } from "react-hot-toast";
 import MainLayout from "./components/MainLayout";
 import LandingPage from "./components/pages/LandingPage";
 import LoginPage from "./components/pages/LoginPage";
@@ -30,34 +31,88 @@ const App = () => {
       <Provider store={store}>
         <AuthInit>
           <Router>
-        <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<LandingPage />} />
-            <Route path="studio" element={
-              <AuthGuard>
-                <StudioPage />
-                </AuthGuard>
-                }
-                 />
-            <Route path="cart" element={<AuthGuard><CartPage /></AuthGuard>} />
-            <Route path="categories" element={<AuthGuard><CategoriesPage /></AuthGuard>} />
-            <Route path="products/:productId" element={<AuthGuard><ProductDetailsPage /></AuthGuard>} />
-            <Route path="admin" element={
-              <AuthGuard>
-              <AdminDashboardPage /></AuthGuard>} />
-            <Route path="my-designs" element={<AuthGuard><MyDesignsPage /></AuthGuard>} />
-            <Route path="notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
-            <Route path="settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
-            <Route path="contact" element={<ContactPage />} />
-            {/* Future microservice routes can be nested here */}
-          </Route>
-          {/* Authentication routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-        </Routes>
-        <FloatingChatbot />
-      </Router>
+            <ScrollToTop />
+            <Routes>
+              <Route path="/" element={<MainLayout />}>
+                <Route index element={<LandingPage />} />
+                <Route
+                  path="studio"
+                  element={
+                    <AuthGuard>
+                      <StudioPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="cart"
+                  element={
+                    <AuthGuard>
+                      <CartPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route path="categories" element={<CategoriesPage />} />
+                <Route
+                  path="products/:productId"
+                  element={<ProductDetailsPage />}
+                />
+                <Route
+                  path="admin"
+                  element={
+                    <AuthGuard>
+                      <AdminDashboardPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="my-designs"
+                  element={
+                    <AuthGuard>
+                      <MyDesignsPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="notifications"
+                  element={
+                    <AuthGuard>
+                      <NotificationsPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <AuthGuard>
+                      <SettingsPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route path="contact" element={<ContactPage />} />
+                {/* Future microservice routes can be nested here */}
+              </Route>
+              {/* Authentication routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+            </Routes>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: "#000000",
+                  color: "#ffffff",
+                  border: "1px solid #2a2a2a",
+                },
+                success: {
+                  iconTheme: {
+                    primary: "#EBB924",
+                    secondary: "#000000",
+                  },
+                },
+              }}
+            />
+            <FloatingChatbot />
+          </Router>
         </AuthInit>
       </Provider>
     </GoogleOAuthProvider>

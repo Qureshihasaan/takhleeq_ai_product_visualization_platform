@@ -141,7 +141,6 @@ async def get_categories(
 @app.get("/product/", response_model=list[Product])
 async def get_product(
     session: Annotated[Session, Depends(get_session)],
-    token_data: Annotated[dict, Depends(validate_role(["seller", "admin", "buyer"]))],
 ):
     products = session.exec(select(Product)).all()
     # Keep client compatibility: if DB stores URL, force clients to use /image endpoint.

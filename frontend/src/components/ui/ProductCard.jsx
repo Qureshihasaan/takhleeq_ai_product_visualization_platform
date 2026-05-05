@@ -11,20 +11,28 @@ const ProductCard = ({
   onViewDetails,
 }) => {
   const [isFavorite, setIsFavorite] = useState(false);
-  const formattedPrice = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(Number(price || 0));
+  const [imageFailed, setImageFailed] = useState(false);
+  const formattedPrice = `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
 
   return (
-    <article className="group w-full max-w-[340px] mx-auto rounded-2xl border border-borderColor/70 bg-surfaceColor overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 focus-within:ring-2 focus-within:ring-focusRingColor">
-      <div className="relative bg-linear-to-b from-backgroundColor to-surfaceColor p-4">
+    <article className="group w-full max-w-[340px] mx-auto rounded-2xl border border-borderColor/70 bg-black overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 focus-within:ring-2 focus-within:ring-focusRingColor">
+      <div className="relative bg-black p-4">
         <div className="h-[220px] rounded-xl bg-backgroundColor/70 border border-borderColor/40 flex items-center justify-center overflow-hidden">
-          <img
-            src={image}
-            alt={title}
-            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
-          />
+          {!imageFailed && image ? (
+            <img
+              src={image}
+              alt={title}
+              onError={() => setImageFailed(true)}
+              className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full bg-black flex flex-col items-center justify-center p-4">
+              <span className="text-primaryColor text-2xl mb-2">✦</span>
+              <p className="text-textColorMuted text-xs text-center line-clamp-2">
+                {title || "Product image unavailable"}
+              </p>
+            </div>
+          )}
         </div>
 
         <button
@@ -84,7 +92,7 @@ const ProductCard = ({
           )}
           <button
             onClick={onAddToCart}
-            className="h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-primaryColor text-white hover:opacity-90 transition text-sm font-semibold"
+            className="h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-primaryColor text-black hover:opacity-90 transition text-sm font-semibold"
             aria-label={`Add ${title} to cart`}
           >
             <ShoppingCart size={16} />
