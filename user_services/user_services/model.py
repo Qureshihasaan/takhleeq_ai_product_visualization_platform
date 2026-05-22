@@ -11,6 +11,7 @@ class User(SQLModel, table=True):
     role: str = Field(default="buyer")  # buyer, seller, admin
     auth_provider: str = Field(default="local")  # local or google
     google_id: Optional[str] = Field(default=None, unique=True)
+    profile_image_url: Optional[str] = Field(default=None)
 
 
 class CreateUser(SQLModel):
@@ -23,6 +24,7 @@ class CreateUser(SQLModel):
 class GoogleAuthRequest(SQLModel):
     id_token: Optional[str] = None
     access_token: Optional[str] = None
+    role: Optional[str] = "buyer"
 
 
 class Token(SQLModel):

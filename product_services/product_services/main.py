@@ -5,7 +5,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Annotated, AsyncGenerator, List, Optional
 from aiokafka import AIOKafkaProducer
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import select
 from fastapi.responses import RedirectResponse
@@ -140,10 +140,11 @@ async def get_product(
     session: Annotated[Session, Depends(get_session)],
 ):
     products = session.exec(select(Product)).all()
-    # Keep client compatibility: if DB stores URL, force clients to use /image endpoint.
+    # Performance fix: strip product_image in list endpoint to prevent massive base64 payloads.
+    # Clients must use `/product/{product_id}/image?raw=true` to load images asynchronously.
     sanitized_products = []
     for p in products:
-        if p.product_image and p.product_image.startswith("http"):
+        if p.product_image:
             product_data = p.dict()
             product_data["product_image"] = None
             sanitized_products.append(Product(**product_data))
@@ -214,12 +215,14 @@ async def delete_product(
 @app.get("/product/{product_id}/image")
 async def get_product_image(
     product_id: int,
+    raw: bool = False,
     session: Session = Depends(get_session),
 ):
     """Get product image.
 
     - If stored value is a Cloudinary URL, redirect to it.
-    - If stored value is base64, return JSON payload for backward compatibility.
+    - If raw is True and stored value is base64, decode and return binary image.
+    - Otherwise, return JSON payload for backward compatibility.
     """
     db_product = session.get(Product, product_id)
     if not db_product:
@@ -231,6 +234,19 @@ async def get_product_image(
 
     if db_product.product_image.startswith("http"):
         return RedirectResponse(url=db_product.product_image)
+
+    if raw:
+        try:
+            b64_str = db_product.product_image
+            if "," in b64_str:
+                b64_str = b64_str.split(",", 1)[1]
+            image_bytes = base64.b64decode(b64_str)
+            return Response(content=image_bytes, media_type="image/png")
+        except Exception as e:
+            logger.error(f"Failed to decode base64 image for product {product_id}: {e}")
+            raise HTTPException(
+                status_code=500, detail="Failed to process image data"
+            )
 
     return {"product_id": product_id, "product_image": db_product.product_image}
 

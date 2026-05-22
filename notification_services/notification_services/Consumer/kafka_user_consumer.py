@@ -40,7 +40,7 @@ async def New_user_created_consumer() -> AIOKafkaConsumer:
                 if not user_email:
                     logging.warning("Email not found in event. Skipping...")
                     continue
-                subject = "Welcome to Online Mart"
+                subject = "Welcome to Takhleeq"
                 body = (
                     f"Dear {user_name},\n\n"
                     "Your Account Has Been Created Successfully.\n\n"
@@ -48,7 +48,7 @@ async def New_user_created_consumer() -> AIOKafkaConsumer:
                     f"- Name: {user_name}\n"
                     f"- Email: {user_email}\n\n"
                     "Thank you for joining us!\n\n"
-                    "Best regards,\nThe Online Mart Team"
+                    "Best regards,\nTakhleeq Team"
                 )
                 try:
                     await send_email(

@@ -53,10 +53,10 @@ Order Details:
 - Product ID: {product_id}
 - Total Amount: {total_amount}
                     
-Thank you for choosing Qureshi Online Mart. We appreciate your trust in us.
+Thank you for choosing Takhleeq. We appreciate your trust in us.
                     
 Best regards,
-The Online Mart Team
+Takhleeq Team
 """
                 try:
                     await send_email(
@@ -87,10 +87,10 @@ Order Details:
 - Product ID: {product_id}
 
 
-Thank you for choosing Qureshi Online Mart. We appreciate your trust in us.
+Thank you for choosing Takhleeq. We appreciate your trust in us.
 
 Best regards,
-The Online Mart Team
+Takhleeq Team
 """
                 try:
                     await send_email(

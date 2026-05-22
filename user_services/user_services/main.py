@@ -1,9 +1,9 @@
-import asyncio, json , logging , httpx
+import asyncio, json , logging , httpx, base64
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Annotated, AsyncGenerator, Dict, Optional
 from aiokafka import AIOKafkaProducer
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -16,6 +16,7 @@ from .model import CreateUser, GoogleAuthRequest, Token, User
 from .producer import kafka_producer
 from .schema import authenticate_user, bcrypt_context
 from .utils import create_access_token, decode_access_token
+from .cloudinary_service import upload_image, delete_image
 
 
 
@@ -225,11 +226,12 @@ async def google_auth(
             db.refresh(user)
     else:
         # New user — auto-create
+        user_role = request.role if request.role in ("buyer", "seller") else "buyer"
         user = User(
             username=name,
             email=email,
             hashed_password=None,
-            role="buyer",
+            role=user_role,
             auth_provider="google",
             google_id=google_id,
         )
@@ -247,7 +249,7 @@ async def google_auth(
             "user": {
                 "username": name,
                 "email": email,
-                "role": "buyer",
+                "role": user.role,
                 "auth_provider": "google",
             },
         }
@@ -332,3 +334,102 @@ async def delete_user(user_id: int, db: Annotated[Session, Depends(get_session)]
     db.delete(user)
     db.commit()
     return {"message": "User Deleted Successfully"}
+
+
+@app.put("/user/me", response_model=User)
+async def update_user_profile(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_session)],
+    producer: Annotated[AIOKafkaProducer, Depends(kafka_producer)],
+    username: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    remove_avatar: Optional[bool] = Form(False),
+):
+    # 1. Authenticate user
+    user_token_data = decode_access_token(token)
+    sub = user_token_data.get("sub", "")
+    user = db.exec(select(User).where((User.email == sub) | (User.username == sub))).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    updated = False
+
+    # 2. Update fields
+    if username is not None:
+        username_stripped = username.strip()
+        if not username_stripped:
+            raise HTTPException(status_code=400, detail="Username cannot be empty")
+        if any(char.isspace() for char in username_stripped):
+            raise HTTPException(status_code=400, detail="Username cannot contain spaces")
+        
+        # Check if username is taken by another user
+        if username_stripped != user.username:
+            existing = db.exec(select(User).where(User.username == username_stripped)).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Username already exists")
+            user.username = username_stripped
+            updated = True
+
+    if email is not None:
+        email_stripped = email.strip()
+        if not email_stripped:
+            raise HTTPException(status_code=400, detail="Email cannot be empty")
+        # Check if email is taken by another user
+        if email_stripped != user.email:
+            existing = db.exec(select(User).where(User.email == email_stripped)).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Email already exists")
+            user.email = email_stripped
+            updated = True
+
+    # 3. Handle image upload or removal
+    if remove_avatar:
+        if user.profile_image_url:
+            # Delete old image from Cloudinary
+            delete_image(user.profile_image_url)
+            user.profile_image_url = None
+            updated = True
+    elif file is not None:
+        file_bytes = await file.read()
+        uploaded_url = upload_image(file_bytes, file.filename)
+        if uploaded_url:
+            # Delete old image if it exists
+            if user.profile_image_url:
+                delete_image(user.profile_image_url)
+            user.profile_image_url = uploaded_url
+            updated = True
+        else:
+            # Fallback to base64 if Cloudinary is not configured or fails
+            user.profile_image_url = f"data:{file.content_type};base64,{base64.b64encode(file_bytes).decode('utf-8')}"
+            updated = True
+
+    if updated:
+        db.add(user)
+        try:
+            db.commit()
+            db.refresh(user)
+        except Exception:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="Failed to update profile changes in database")
+
+        # Publish User_Updated Kafka event
+        event = {
+            "event_type": "User_Updated",
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "profile_image_url": user.profile_image_url,
+            },
+        }
+        try:
+            await producer.send_and_wait(
+                setting.KAFKA_USER_TOPIC, json.dumps(event).encode("utf-8")
+            )
+            print("User_Updated event sent to Kafka topic")
+        except Exception as e:
+            print(f"Error sending User_Updated event to Kafka: {e}")
+
+    return user

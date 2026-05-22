@@ -143,8 +143,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           <div
             className={`flex items-center gap-marginSmall ${isCollapsed ? "justify-center" : ""}`}
           >
-            <div className="w-10 h-10 rounded-borderRadiusFull bg-surfaceColor flex items-center justify-center text-primaryColor shrink-0">
-              <User size={20} />
+            <div className="w-10 h-10 rounded-borderRadiusFull bg-surfaceColor border border-borderColor flex items-center justify-center text-primaryColor shrink-0 overflow-hidden">
+              {currentUser?.profile_image_url ? (
+                <img src={currentUser.profile_image_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User size={20} />
+              )}
             </div>
             {!isCollapsed && (
               <div className="duration-[var(--transitionDuration)] animate-in fade-in duration-[var(--transitionDuration)]">

@@ -11,10 +11,15 @@ const PRODUCTS_BASE_URL =
   import.meta.env.VITE_PRODUCTS_API_URL || "http://localhost:8000";
 
 const getProductImageUrl = (product) => {
+  if (!product) return "";
   if (product.product_image) {
-    return `data:image/png;base64,${product.product_image}`;
+    const img = product.product_image;
+    if (img.startsWith("data:") || img.startsWith("http")) return img;
+    return `data:image/png;base64,${img}`;
   }
-  return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image`;
+  const productId = getProductId(product);
+  if (!productId) return "";
+  return `${PRODUCTS_BASE_URL}/product/${productId}/image?raw=true`;
 };
 
 const getProductId = (product) =>

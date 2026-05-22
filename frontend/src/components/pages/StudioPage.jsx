@@ -126,9 +126,11 @@ const StudioPage = () => {
   const getProductImageSrc = (product) => {
     if (!product) return "";
     if (product.product_image) {
-      return `data:image/png;base64,${product.product_image}`;
+      const img = product.product_image;
+      if (img.startsWith("data:") || img.startsWith("http")) return img;
+      return `data:image/png;base64,${img}`;
     }
-    return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image`;
+    return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image?raw=true`;
   };
 
   const selectedColorHex = useMemo(

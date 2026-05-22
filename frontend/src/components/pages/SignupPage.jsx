@@ -11,6 +11,7 @@ const SignupPage = () => {
     password: "",
     confirmPassword: "",
   });
+  const [role, setRole] = useState("buyer");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,7 +62,7 @@ const SignupPage = () => {
         username: formData.username,
         email: formData.email,
         plain_password: formData.password,
-        role: "buyer",
+        role: role,
       });
 
       if (response.message) {
@@ -82,7 +83,7 @@ const SignupPage = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await authService.googleAuth(credentialResponse.credential, true);
+      const response = await authService.googleAuth(credentialResponse.credential, true, role);
       if (response.access_token) {
         authService.setAuthToken(response.access_token);
         navigate("/studio");
@@ -114,11 +115,39 @@ const SignupPage = () => {
             Create Account
           </h2>
           <p className="text-textColorMuted mt-marginSmall">
-            Join Takhleeq and start designing
+            {role === "buyer"
+              ? "Join Takhleeq and start designing"
+              : "Register as a Seller to showcase and sell your creations"}
           </p>
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
+          {/* Role Selection Tabs */}
+          <div className="flex p-1 bg-surfaceColor border border-borderColor rounded-borderRadiusMd mb-marginMedium">
+            <button
+              type="button"
+              onClick={() => setRole("buyer")}
+              className={`flex-1 py-2 text-fontSizeSm font-fontWeightMedium rounded-borderRadiusMd transition-all cursor-pointer ${
+                role === "buyer"
+                  ? "bg-primaryColor text-textColorInverse shadow-boxShadowLow font-fontWeightBold"
+                  : "text-textColorMuted hover:text-textColorMain"
+              }`}
+            >
+              Buyer
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("seller")}
+              className={`flex-1 py-2 text-fontSizeSm font-fontWeightMedium rounded-borderRadiusMd transition-all cursor-pointer ${
+                role === "seller"
+                  ? "bg-primaryColor text-textColorInverse shadow-boxShadowLow font-fontWeightBold"
+                  : "text-textColorMuted hover:text-textColorMain"
+              }`}
+            >
+              Become a Seller
+            </button>
+          </div>
+
           {error && (
             <div className="bg-errorColor/10 border border-errorColor text-errorColor px-paddingMedium py-paddingSmall rounded-borderRadiusMd text-fontSizeSm">
               {error}
@@ -296,7 +325,7 @@ const SignupPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-paddingMedium px-paddingLarge border border-transparent text-fontSizeSm font-fontWeightMedium rounded-borderRadiusMd text-textColorInverse bg-primaryColor hover:bg-primaryColor/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primaryColor disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="group relative w-full flex justify-center py-paddingMedium px-paddingLarge border border-transparent text-fontSizeSm font-fontWeightMedium rounded-borderRadiusMd text-textColorInverse bg-primaryColor hover:bg-primaryColor/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primaryColor disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               {loading ? (
                 <span className="flex items-center">
@@ -320,10 +349,10 @@ const SignupPage = () => {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Creating account...
+                  {role === "buyer" ? "Creating account..." : "Registering seller..."}
                 </span>
               ) : (
-                "Create Account"
+                role === "buyer" ? "Create Account" : "Register as Seller"
               )}
             </button>
           </div>

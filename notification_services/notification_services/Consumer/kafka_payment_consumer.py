@@ -44,10 +44,10 @@ Payment Details:
 
 We are delighted to confirm that your payment of {amount} has been successfully processed. Your order with ID {order_id} is now being processed and will be shipped to you shortly.
 
-Thank you for choosing Qureshi Online Mart.
+Thank you for choosing Takhleeq.
 
 Best regards,
-The Online Mart Team
+The Takhleeq Team
 """
                 user_email = payment_data.get("user_email")
                 if not user_email:
@@ -75,10 +75,10 @@ Payment Details:
 
 We regret to inform you that your payment of {amount} for order {order_id} has been cancelled. If you have any concerns, please contact our support team.
 
-Thank you for choosing Qureshi Online Mart.
+Thank you for choosing Takhleeq.
 
 Best regards,
-The Online Mart Team
+The Takhleeq Team
 """
                 user_email = payment_data.get("user_email")
                 if not user_email:

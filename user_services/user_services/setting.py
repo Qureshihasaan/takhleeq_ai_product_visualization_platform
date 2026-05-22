@@ -29,3 +29,9 @@ GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", cast=str)
 
 # KAFKA_SASL_USERNAME = config("KAFKA_SASL_USERNAME", cast=str)
 # KAFKA_SASL_PASSWORD = config("KAFKA_SASL_PASSWORD", cast=str)
+
+### Cloudinary Config
+CLOUDINARY_CLOUD_NAME = config("CLOUDINARY_CLOUD_NAME", cast=str, default="")
+CLOUDINARY_API_KEY = config("CLOUDINARY_API_KEY", cast=str, default="")
+CLOUDINARY_API_SECRET = config("CLOUDINARY_API_SECRET", cast=str, default="")
+

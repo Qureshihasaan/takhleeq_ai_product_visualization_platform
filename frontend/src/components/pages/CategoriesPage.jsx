@@ -42,10 +42,13 @@ const getBase64Src = (b64String) => {
 };
 
 const getProductImageUrl = (product) => {
+  if (!product) return "";
   if (product.product_image) {
     return getBase64Src(product.product_image);
   }
-  return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image`;
+  const productId = getProductId(product);
+  if (!productId) return "";
+  return `${PRODUCTS_BASE_URL}/product/${productId}/image?raw=true`;
 };
 
 const getProductId = (product) => product?.product_id ?? product?.Product_id ?? product?.id;

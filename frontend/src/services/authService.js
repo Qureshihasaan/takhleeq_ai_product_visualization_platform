@@ -47,11 +47,11 @@ export const authService = {
   /**
    * Google OAuth authentication
    */
-  googleAuth: async (token, isAccessToken = false) => {
+  googleAuth: async (token, isAccessToken = false, role = "buyer") => {
     try {
       const payload = isAccessToken 
-        ? { access_token: token } 
-        : { id_token: token };
+        ? { access_token: token, role } 
+        : { id_token: token, role };
         
       const response = await usersApi.post("/auth/google", payload);
       return response.data;
@@ -162,6 +162,23 @@ export const authService = {
    */
   removeAuthToken: () => {
     localStorage.removeItem("authToken");
+  },
+
+  /**
+   * Update current user profile (username, email, profile picture)
+   */
+  updateProfile: async (formData) => {
+    try {
+      const response = await usersApi.put("/user/me", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      throw new Error(error.response?.data?.detail || error.message || "Failed to update profile");
+    }
   },
 
   /**

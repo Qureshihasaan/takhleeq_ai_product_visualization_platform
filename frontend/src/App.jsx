@@ -16,6 +16,8 @@ import AdminDashboardPage from "./components/pages/AdminDashboardPage";
 import NotificationsPage from "./components/pages/NotificationsPage";
 import SettingsPage from "./components/pages/SettingsPage";
 import ContactPage from "./components/pages/ContactPage";
+import AboutUsPage from "./components/pages/AboutUsPage";
+import AiGeneratorGuidePage from "./components/pages/AiGeneratorGuidePage";
 import FloatingChatbot from "./components/ui/FoatingChatbot";
 import ScrollToTop from "./components/ScrollToTop";
 import AuthGuard from "./components/routing/AuthGuard";
@@ -89,6 +91,8 @@ const App = () => {
                   }
                 />
                 <Route path="contact" element={<ContactPage />} />
+                <Route path="about" element={<AboutUsPage />} />
+                <Route path="ai-guide" element={<AiGeneratorGuidePage />} />
                 {/* Future microservice routes can be nested here */}
               </Route>
               {/* Authentication routes */}

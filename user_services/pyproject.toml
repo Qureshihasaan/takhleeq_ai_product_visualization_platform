@@ -25,4 +25,5 @@ dependencies = [
     "confluent-kafka>=2.13.2",
     "python-dotenv==1.0.1",
     "httpx>=0.28.1",
+    "cloudinary>=1.40.0",
 ]

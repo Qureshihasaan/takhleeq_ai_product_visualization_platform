@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { 
   Share2, 
@@ -91,8 +92,8 @@ const Footer = () => {
 
           {/* Quick Links */}
           <FooterSection title="Quick Links">
-            <a href="#" className="hover:text-primaryColor transition-colors duration-[var(--transitionDuration)]">About Us</a>
-            <a href="#" className="hover:text-primaryColor transition-colors duration-[var(--transitionDuration)]">AI Generator Guide</a>
+            <Link to="/about" className="hover:text-primaryColor transition-colors duration-[var(--transitionDuration)]">About Us</Link>
+            <Link to="/ai-guide" className="hover:text-primaryColor transition-colors duration-[var(--transitionDuration)]">AI Generator Guide</Link>
             <a href="#" className="hover:text-primaryColor transition-colors duration-[var(--transitionDuration)]">Bulk Orders</a>
             <a href="#" className="hover:text-primaryColor transition-colors duration-[var(--transitionDuration)]">Sustainability</a>
           </FooterSection>
