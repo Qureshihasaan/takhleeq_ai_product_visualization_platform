@@ -9,7 +9,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    depends_on: ["product_services", "inventory_services", "user_services", "order_services", "payment_services", "ai_design_visualization", "ai_chatbot" , "broker"]
+    depends_on: [ "product_services", "inventory_services", "user_services", "order_services", "payment_services", "ai_design_visualization", "ai_chatbot", "broker" ]
     environment:
       - VITE_API_URL=/api
   product_services:
@@ -210,4 +210,3 @@ services:
 networks:
   default:
     driver: bridge
-    

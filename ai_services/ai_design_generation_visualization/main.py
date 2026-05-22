@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import uuid
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -203,13 +204,28 @@ async def ai_center_create(
         else:
             logger.info("No product image available — saving design only")
 
-        # Step 4: Save to database
+        # Step 4: Upload to Cloudinary to prevent Base64 database bloat
+        logger.info("Uploading images to Cloudinary...")
+        
+        design_filename = f"design_{uuid.uuid4().hex[:12]}"
+        design_url = upload_base64_image(design_image_b64, design_filename)
+        
+        final_product_url = None
+        if final_product_b64:
+            product_filename = f"product_{uuid.uuid4().hex[:12]}"
+            final_product_url = upload_base64_image(final_product_b64, product_filename)
+            
+        # Fallback to base64 if Cloudinary upload fails
+        final_design_data = design_url or design_image_b64
+        final_visualization_data = final_product_url or final_product_b64
+
+        # Step 5: Save to database
         ai_center = AICenter(
             user_id=request.user_id,
             user_idea=request.user_idea,
-            design_from_gemini=design_image_b64,
+            design_from_gemini=final_design_data,
             product_id=request.product_id,
-            final_product=final_product_b64,
+            final_product=final_visualization_data,
             status="pending",
         )
         session.add(ai_center)

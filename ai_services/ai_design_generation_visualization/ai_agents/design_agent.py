@@ -92,6 +92,11 @@ async def analyze_reference_image(reference_id: str) -> str:
         "This description will be used to generate a similar or modified design."
     )
 
+    image_url_payload = (
+        {"url": image_b64} if image_b64.startswith("http") 
+        else {"url": f"data:image/png;base64,{image_b64}"}
+    )
+
     try:
         response = await external_client.chat.completions.create(
             model="gemini-1.5-flash-latest",
@@ -100,7 +105,7 @@ async def analyze_reference_image(reference_id: str) -> str:
                     "role": "user",
                     "content": [
                         {"type": "text", "text": instruction},
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}},
+                        {"type": "image_url", "image_url": image_url_payload},
                     ],
                 }
             ],
@@ -184,7 +189,7 @@ async def generate_design_image(prompt: str, reference_image_id: str | None = No
 
 
 @function_tool
-async def edit_design_image(prompt: str, original_image_id: str) -> str:
+async def edit_design_image(prompt: str, original_image_id: str, visual_description: str) -> str:
     """Modify an existing design image based on a text prompt.
 
     Use this tool when the user wants to change colors, add elements, or 
@@ -193,6 +198,7 @@ async def edit_design_image(prompt: str, original_image_id: str) -> str:
     Args:
         prompt: Detailed description of the changes to apply (e.g., 'Change the panda's fur to blue').
         original_image_id: The reference ID of the image to be edited.
+        visual_description: The detailed visual description of the original image obtained from analyze_reference_image.
 
     Returns:
         A short reference ID for the edited image.
@@ -209,6 +215,11 @@ async def edit_design_image(prompt: str, original_image_id: str) -> str:
         "The output must be a high-quality, professional design on a clean background."
     )
 
+    image_url_payload = (
+        {"url": original_b64} if original_b64.startswith("http") 
+        else {"url": f"data:image/png;base64,{original_b64}"}
+    )
+
     # Use Gemini 2.0 Flash for image-to-image editing
     # We'll use the external_client (which is the OpenAI adapter for Gemini)
     try:
@@ -219,7 +230,7 @@ async def edit_design_image(prompt: str, original_image_id: str) -> str:
                     "role": "user",
                     "content": [
                         {"type": "text", "text": instruction},
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{original_b64}"}},
+                        {"type": "image_url", "image_url": image_url_payload},
                     ],
                 }
             ],
@@ -230,13 +241,15 @@ async def edit_design_image(prompt: str, original_image_id: str) -> str:
         
         if not image_b64:
             # Fallback to Pollinations with structural description if 2.0 fails
-            return await generate_design_image(f"A professional design of the exact same subject as the reference image, but with these changes: {prompt}. Preserve pose and style.")
+            fallback_prompt = f"A professional design matching this exact description: {visual_description}. But with these specific modifications: {prompt}. Ensure the core structure, pose, and art style remain absolutely identical."
+            return await generate_design_image(fallback_prompt)
 
         ref_id = store_image(image_b64)
         return f"IMAGE_GENERATED:{ref_id}"
     except Exception as e:
         print(f"Gemini 2.0 Edit failed: {e}. Falling back to Pollinations.")
-        return await generate_design_image(f"A professional design of the exact same subject as the reference image, but with these changes: {prompt}. Preserve pose and style.")
+        fallback_prompt = f"A professional design matching this exact description: {visual_description}. But with these specific modifications: {prompt}. Ensure the core structure, pose, and art style remain absolutely identical."
+        return await generate_design_image(fallback_prompt)
 
 
 # ---------------------------------------------------------------------------
