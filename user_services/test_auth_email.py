@@ -34,13 +34,13 @@ class TestAuthEmail(unittest.TestCase):
         user = authenticate_user("test@example.com", "wrongpassword", self.session)
         self.assertFalse(user)
 
-        # Test failed authentication with username (should fail now)
+        # Test successful authentication with username (both username and email are supported)
         user = authenticate_user("testuser", "testpassword", self.session)
-        self.assertFalse(user)
+        self.assertIsNotNone(user)
 
     def test_create_access_token_with_email(self):
         token = create_access_token(
-            email="test@example.com",
+            username="test@example.com",
             user_id=1,
             role="buyer",
             expires_delta=timedelta(minutes=10)

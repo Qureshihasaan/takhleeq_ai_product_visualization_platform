@@ -72,7 +72,7 @@ const SignupPage = () => {
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "Registration failed. Please try again.",
+        err.message || "Registration failed. Please try again.",
       );
     } finally {
       setLoading(false);

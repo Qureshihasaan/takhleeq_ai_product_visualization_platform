@@ -36,9 +36,10 @@ export const productService = {
   /**
    * Get all products
    */
-  getAllProducts: async () => {
+  getAllProducts: async (sellerId = null) => {
     try {
-      const response = await productsApi.get("/product/");
+      const url = sellerId ? `/product/?seller_id=${sellerId}` : "/product/";
+      const response = await productsApi.get(url);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch products:", error);

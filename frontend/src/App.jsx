@@ -21,7 +21,9 @@ import AiGeneratorGuidePage from "./components/pages/AiGeneratorGuidePage";
 import FloatingChatbot from "./components/ui/FoatingChatbot";
 import ScrollToTop from "./components/ScrollToTop";
 import AuthGuard from "./components/routing/AuthGuard";
+import RoleGuard from "./components/routing/RoleGuard";
 import AuthInit from "./components/routing/AuthInit";
+import SellerDashboardPage from "./components/pages/SellerDashboardPage";
 import { store } from "./store/store";
 import { injectStore } from "./services/apiClient";
 
@@ -61,9 +63,17 @@ const App = () => {
                 <Route
                   path="admin"
                   element={
-                    <AuthGuard>
+                    <RoleGuard allowedRoles={["admin"]}>
                       <AdminDashboardPage />
-                    </AuthGuard>
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="seller/dashboard"
+                  element={
+                    <RoleGuard allowedRoles={["seller"]}>
+                      <SellerDashboardPage />
+                    </RoleGuard>
                   }
                 />
                 <Route

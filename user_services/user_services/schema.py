@@ -23,9 +23,9 @@ def authenticate_user(
       (e.g. Google-authenticated accounts).
     - It never raises an unexpected exception during verification.
     """
-    logger.debug("authenticate_user called with username=%s", username)
+    logger.debug("authenticate_user called with identifier=%s", username)
 
-    stmt = select(User).where(User.username == username)
+    stmt = select(User).where((User.username == username) | (User.email == username))
     user = db.exec(stmt).first()
     if not user:
         logger.debug("authenticate_user: no user found for identifier=%s", username)

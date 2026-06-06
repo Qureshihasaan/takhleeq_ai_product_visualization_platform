@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy.pool import StaticPool
 
 from product_services.database import Product
 from product_services.main import app, get_session
@@ -22,7 +23,11 @@ def test_product_health_endpoint():
 
 
 def test_get_products_returns_records():
-    engine = create_engine("sqlite://")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     SQLModel.metadata.create_all(engine)
 
     with Session(engine) as session:
@@ -57,7 +62,11 @@ def test_get_products_returns_records():
 
 
 def test_get_product_image_not_found():
-    engine = create_engine("sqlite://")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     SQLModel.metadata.create_all(engine)
 
     def override_get_session():

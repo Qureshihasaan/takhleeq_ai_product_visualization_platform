@@ -61,8 +61,10 @@ const LoginPage = () => {
         // Hydrate Redux with real user data
         dispatch(loginSuccess(userProfile));
 
-        if (userProfile.role === 'seller') {
+        if (userProfile.role === 'admin') {
           navigate('/admin');
+        } else if (userProfile.role === 'seller') {
+          navigate('/seller/dashboard');
         } else {
           navigate('/');
         }
@@ -70,11 +72,11 @@ const LoginPage = () => {
         setError('Login failed. Please try again.');
       }
     } catch (err) {
-      const detail = err.response?.data?.detail;
+      const detail = err.message;
       if (detail === 'Could Not Validate User') {
         setError('Incorrect email or password.');
       } else {
-        setError(detail || err.response?.data?.message || 'Login failed. Please check your credentials.');
+        setError(detail || 'Login failed. Please check your credentials.');
       }
     } finally {
       setLoading(false);
@@ -99,8 +101,10 @@ const LoginPage = () => {
         }
 
         dispatch(loginSuccess(userProfile));
-        if (userProfile.role === 'seller') {
+        if (userProfile.role === 'admin') {
           navigate('/admin');
+        } else if (userProfile.role === 'seller') {
+          navigate('/seller/dashboard');
         } else {
           navigate('/');
         }

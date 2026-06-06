@@ -76,6 +76,18 @@ async def create_order(order : Order , producer : Annotated[AIOKafkaProducer, De
             print(f"Inventory Service Connection Error: {e}")
             raise HTTPException(status_code=503, detail=f"Inventory Service Unavailable: {e}")
             
+    # Resolve product seller_id from product service
+    async with httpx.AsyncClient() as client:
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            prod_response = await client.get(f"http://product_services:8000/product/{order.product_id}", headers=headers)
+            prod_response.raise_for_status()
+            product_data = prod_response.json()
+            order.seller_id = product_data.get("seller_id", 0)
+        except Exception as e:
+            print(f"Failed to fetch product details to get seller_id: {e}")
+            order.seller_id = 0
+
     order_dict = {field : getattr(order, field) for field in order.dict()}
     order_json = json.dumps(order_dict).encode('utf-8')
     print("order_json", order_json)
@@ -96,12 +108,24 @@ async def create_order(order : Order , producer : Annotated[AIOKafkaProducer, De
 
 @app.put("/update_order/{order_id}")
 async def update_order(order_id : int , update_order : Order , producer : Annotated[AIOKafkaProducer, Depends(kafka_producer)],
-                       session : Annotated[Session, Depends(get_db)]                       
+                       session : Annotated[Session, Depends(get_db)],
+                       token_data: dict = Depends(validate_role(["seller", "admin"])),
                        ):
     db_order = session.get(Order , order_id)
     if not db_order:
-        raise HTTPException(status_code=404 , detail=f"Order With this {order_id} not found")    
+        raise HTTPException(status_code=404 , detail=f"Order With this {order_id} not found")
+
+    # Enforce ownership check for sellers
+    if token_data.get("role") == "seller" and db_order.seller_id != token_data.get("id"):
+        raise HTTPException(status_code=403, detail="Role 'seller' is not authorized to edit this order")
+
     update_data = update_order.dict(exclude_unset=True)
+    # Prevent updating user_id or seller_id
+    if "user_id" in update_data:
+        del update_data["user_id"]
+    if "seller_id" in update_data:
+        del update_data["seller_id"]
+
     for field, value in update_data.items():
         if field != "order_id":
             setattr(db_order, field, value)
@@ -123,36 +147,49 @@ async def update_order(order_id : int , update_order : Order , producer : Annota
 
 @app.get("/get_order")
 def get_order(db: Annotated[Session,Depends(get_db)],
-            #   token : str = Depends(oauth2_scheme)
-            #   , current_user : str = Depends(get_current_user)  
+              token_data : dict = Depends(verify_token)
               ):
-    # user_data = decode_access_token(token)
-    # if user_data:
-    order = db.exec(select(Order)).all()
-    return order
-    # return {"message" : "Order Fetched Successfully"}
-    # else:
-    # raise HTTPException(status_code=401, detail="Invalid token")
+    role = token_data.get("role")
+    user_id = token_data.get("id")
 
-### Route for getting Single Order
+    if role == "admin":
+        return db.exec(select(Order)).all()
+    elif role == "seller":
+        return db.exec(select(Order).where(Order.seller_id == user_id)).all()
+    else:
+        return db.exec(select(Order).where(Order.user_id == user_id)).all()
+
 
 @app.get("/get_single_order")
-def get_single_order(order_id : int , db : Annotated[Session , Depends(get_db)]):
+def get_single_order(order_id : int , db : Annotated[Session , Depends(get_db)],
+                     token_data: dict = Depends(verify_token)):
     order = db.get(Order , order_id)
     if not order:
         raise HTTPException(status_code=404 , detail="order not found")
-    return order
 
+    # Access control: buyer must own it, seller must own it, admin can see all
+    role = token_data.get("role")
+    user_id = token_data.get("id")
+    if role == "seller" and order.seller_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this order")
+    elif role == "buyer" and order.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this order")
+
+    return order
 
 
 @app.delete("/delete_order")
 async def delete_order(order_id : int , session : Annotated[Session , Depends(get_db)] ,
                  producer : Annotated[AIOKafkaProducer , Depends(kafka_producer)],
-                #  current_user : str = Depends(get_current_user) 
+                 token_data: dict = Depends(validate_role(["admin", "seller"])),
                  ):
     order = session.get(Order, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="order not found")
+
+    if token_data.get("role") == "seller" and order.seller_id != token_data.get("id"):
+        raise HTTPException(status_code=403, detail="Role 'seller' is not authorized to delete this order")
+
     order_dict = {fields : getattr(order , fields) for fields in order.dict()}
     order_json = json.dumps(order_dict).encode("utf-8")
     print("Order_json" , order_json)

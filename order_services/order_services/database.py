@@ -16,6 +16,7 @@ class Order(SQLModel , table=True):
     custom_design_id: Optional[int] = Field(default=None)
     custom_product_name: Optional[str] = Field(default=None)
     custom_product_image: Optional[str] = Field(default=None)
+    seller_id: int = Field(default=0, index=True)
 
 
 
@@ -28,6 +29,7 @@ class Order_request(SQLModel):
     custom_design_id: Optional[int] = Field(default=None)
     custom_product_name: Optional[str] = Field(default=None)
     custom_product_image: Optional[str] = Field(default=None)
+    seller_id: int = 0
 
 class OrderResponse(SQLModel):
     order_id : int
@@ -40,6 +42,7 @@ class OrderResponse(SQLModel):
     custom_design_id: Optional[int] = Field(default=None)
     custom_product_name: Optional[str] = Field(default=None)
     custom_product_image: Optional[str] = Field(default=None)
+    seller_id: int = 0
 
 
 class User(SQLModel):
@@ -67,6 +70,7 @@ def create_db_and_tables()->None:
         conn.execute(text("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS custom_design_id INTEGER"))
         conn.execute(text("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS custom_product_name VARCHAR"))
         conn.execute(text("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS custom_product_image TEXT"))
+        conn.execute(text("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS seller_id INTEGER DEFAULT 0"))
 
 
 

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
-import { authService } from "../../services/authService";
 import { productService } from "../../services/productService";
 import { orderService } from "../../services/orderService";
 
@@ -36,29 +35,13 @@ const StatCard = ({ label, value }) => (
   </div>
 );
 
-const ServiceBadge = ({ name, healthy }) => (
-  <span
-    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${
-      healthy
-        ? "bg-green-500/10 text-green-400 border-green-500/30"
-        : "bg-red-500/10 text-red-400 border-red-500/30"
-    }`}
-  >
-    <span
-      className={`w-2 h-2 rounded-full ${healthy ? "bg-green-400" : "bg-red-400"}`}
-    />
-    {name}
-  </span>
-);
-
-const AdminDashboardPage = () => {
+const SellerDashboardPage = () => {
   const currentUser = useSelector((state) => state.auth.user);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [busyKey, setBusyKey] = useState("");
-  const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [editingProductId, setEditingProductId] = useState(null);
@@ -79,27 +62,20 @@ const AdminDashboardPage = () => {
   });
   const [createImageInputKey, setCreateImageInputKey] = useState(0);
   const [orderStatusEdits, setOrderStatusEdits] = useState({});
-  const [health, setHealth] = useState({
-    users: false,
-    products: false,
-    orders: false,
-  });
 
   const loadDashboardData = async () => {
+    if (!currentUser?.id) return;
     setLoading(true);
     setError("");
 
     try {
-      const [usersData, productsData, ordersData, productsHealth] =
-        await Promise.all([
-          authService.getAllUsers(),
-          productService.getAllProducts(),
-          orderService.getAllOrders(),
-          productService.checkHealth(),
-        ]);
+      // Fetch only products created by this seller
+      const [productsData, ordersData] = await Promise.all([
+        productService.getAllProducts(currentUser.id),
+        orderService.getAllOrders(), // Backend automatically filters by seller role and ID
+      ]);
 
       const safeOrders = Array.isArray(ordersData) ? ordersData : [];
-      setUsers(Array.isArray(usersData) ? usersData : []);
       setProducts(Array.isArray(productsData) ? productsData : []);
       setOrders(safeOrders);
       setOrderStatusEdits(
@@ -110,15 +86,10 @@ const AdminDashboardPage = () => {
           return acc;
         }, {})
       );
-      setHealth({
-        users: true,
-        products: !!productsHealth?.status,
-        orders: true,
-      });
     } catch (err) {
       setError(
         err?.response?.data?.detail ||
-          "Failed to load admin dashboard data. Check backend services."
+          "Failed to load seller dashboard data. Check backend services."
       );
     } finally {
       setLoading(false);
@@ -126,7 +97,7 @@ const AdminDashboardPage = () => {
   };
 
   useEffect(() => {
-    if (!currentUser || currentUser.role !== "admin") return;
+    if (!currentUser || currentUser.role !== "seller") return;
     loadDashboardData();
   }, [currentUser?.id, currentUser?.role]);
 
@@ -153,24 +124,6 @@ const AdminDashboardPage = () => {
   const setActionFeedback = (message = "", err = "") => {
     setActionMessage(message);
     setActionError(err);
-  };
-
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm("Delete this user?")) return;
-    setBusyKey(`user-${userId}`);
-    setActionFeedback();
-    try {
-      await authService.deleteUser(userId);
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-      setActionFeedback("User deleted successfully.");
-    } catch (err) {
-      setActionFeedback(
-        "",
-        err?.response?.data?.detail || "Failed to delete user."
-      );
-    } finally {
-      setBusyKey("");
-    }
   };
 
   const startEditProduct = (product) => {
@@ -267,7 +220,7 @@ const AdminDashboardPage = () => {
       };
       await orderService.updateOrder(order.order_id, payload);
       await loadDashboardData();
-      setActionFeedback("Order update request sent successfully.");
+      setActionFeedback("Order updated successfully.");
     } catch (err) {
       setActionFeedback(
         "",
@@ -278,35 +231,17 @@ const AdminDashboardPage = () => {
     }
   };
 
-  const handleDeleteOrder = async (orderId) => {
-    if (!window.confirm("Delete this order?")) return;
-    setBusyKey(`order-delete-${orderId}`);
-    setActionFeedback();
-    try {
-      await orderService.deleteOrder(orderId);
-      setOrders((prev) => prev.filter((o) => o.order_id !== orderId));
-      setActionFeedback("Order deleted successfully.");
-    } catch (err) {
-      setActionFeedback(
-        "",
-        err?.response?.data?.detail || "Failed to delete order."
-      );
-    } finally {
-      setBusyKey("");
-    }
-  };
-
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
-  if (currentUser.role !== "admin") {
+  if (currentUser.role !== "seller") {
     return (
       <div className="min-h-screen bg-background px-6 py-10">
         <div className="max-w-4xl mx-auto rounded-borderRadiusLg border border-borderColor bg-surfaceColor p-6">
-          <h1 className="text-2xl text-textColorMain">Admin Dashboard</h1>
+          <h1 className="text-2xl text-textColorMain">Seller Dashboard</h1>
           <p className="text-textColorMuted mt-2">
-            You do not have permission to view this page. Admin accounts only.
+            You do not have permission to view this page. Seller accounts only.
           </p>
         </div>
       </div>
@@ -317,17 +252,11 @@ const AdminDashboardPage = () => {
     <div className="min-h-screen bg-background px-6 py-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-semibold text-textColorMain">
-          Admin Dashboard
+          Seller Dashboard
         </h1>
         <p className="text-textColorMuted mt-2">
-          Operational overview powered by live backend data.
+          Manage your products, view store sales, and fulfill customer orders.
         </p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <ServiceBadge name="Users Service" healthy={health.users} />
-          <ServiceBadge name="Products Service" healthy={health.products} />
-          <ServiceBadge name="Orders Service" healthy={health.orders} />
-        </div>
 
         {error && (
           <div className="mt-4 rounded-borderRadiusMd border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-400 text-sm">
@@ -349,57 +278,19 @@ const AdminDashboardPage = () => {
           <div className="mt-8 text-textColorMuted">Loading dashboard...</div>
         ) : (
           <>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Total Users" value={users.length} />
-              <StatCard label="Total Products" value={products.length} />
-              <StatCard label="Total Orders" value={orders.length} />
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <StatCard label="My Products" value={products.length} />
+              <StatCard label="My Orders" value={orders.length} />
               <StatCard label="Inventory Units" value={totalInventory} />
             </div>
 
-            <div className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="mt-6 grid grid-cols-1 gap-6">
               <section className="rounded-borderRadiusLg border border-borderColor bg-surfaceColor p-4">
                 <h2 className="text-lg text-textColorMain mb-3">
-                  Users (Delete)
+                  Customer Orders
                 </h2>
                 <div className="space-y-2">
-                  {users
-                    .filter((u) => u.role !== "admin")
-                    .slice(0, 6)
-                    .map((user) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center justify-between border border-borderColor/60 rounded-borderRadiusMd px-3 py-2"
-                      >
-                        <div>
-                          <p className="text-textColorMain text-sm">
-                            {user.username || "Unknown"}
-                          </p>
-                          <p className="text-textColorMuted text-xs">{user.email}</p>
-                        </div>
-                        <span className="text-xs text-primaryColor uppercase">
-                          {user.role || "buyer"}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteUser(user.id)}
-                          disabled={busyKey === `user-${user.id}`}
-                          className="text-xs px-2 py-1 rounded border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-50"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
-                  {!users.filter((u) => u.role !== "admin").length && (
-                    <p className="text-textColorMuted text-sm">No users found.</p>
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-borderRadiusLg border border-borderColor bg-surfaceColor p-4">
-                <h2 className="text-lg text-textColorMain mb-3">
-                  Orders (Update/Delete)
-                </h2>
-                <div className="space-y-2">
-                  {orders.slice(0, 6).map((order, idx) => {
+                  {orders.map((order, idx) => {
                     const product = productsById[order.product_id];
                     const productName =
                       order.custom_product_name ||
@@ -463,28 +354,21 @@ const AdminDashboardPage = () => {
                             disabled={busyKey === `order-update-${order.order_id}`}
                             className="text-xs px-2 py-1 rounded border border-primaryColor/50 text-primaryColor hover:bg-primaryColor/10 disabled:opacity-50"
                           >
-                            Update
-                          </button>
-                          <button
-                            onClick={() => handleDeleteOrder(order.order_id)}
-                            disabled={busyKey === `order-delete-${order.order_id}`}
-                            className="text-xs px-2 py-1 rounded border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-50"
-                          >
-                            Delete
+                            Update Status
                           </button>
                         </div>
                       </div>
                     );
                   })}
                   {!orders.length && (
-                    <p className="text-textColorMuted text-sm">No orders found.</p>
+                    <p className="text-textColorMuted text-sm">No orders found for your products.</p>
                   )}
                 </div>
               </section>
             </div>
 
             <section className="mt-6 rounded-borderRadiusLg border border-borderColor bg-surfaceColor p-4">
-              <h2 className="text-lg text-textColorMain mb-3">Create Product</h2>
+              <h2 className="text-lg text-textColorMain mb-3">Add New Product</h2>
               <form
                 onSubmit={handleCreateProduct}
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3"
@@ -579,10 +463,10 @@ const AdminDashboardPage = () => {
 
             <section className="mt-6 rounded-borderRadiusLg border border-borderColor bg-surfaceColor p-4">
               <h2 className="text-lg text-textColorMain mb-3">
-                Products (Update/Delete)
+                My Products
               </h2>
               <div className="space-y-2">
-                {products.slice(0, 8).map((product) => (
+                {products.map((product) => (
                   <div
                     key={product.product_id}
                     className="border border-borderColor/60 rounded-borderRadiusMd p-3"
@@ -674,14 +558,14 @@ const AdminDashboardPage = () => {
                             }}
                           />
                           <div>
-                          <p className="text-textColorMain text-sm">
-                            {product.Product_name}
-                          </p>
-                          <p className="text-textColorMuted text-xs">
-                            Qty: {product.product_quantity || 0} | Price:{" "}
-                            {Number(product.price || 0).toFixed(2)} | Category:{" "}
-                            {product.category || "N/A"}
-                          </p>
+                            <p className="text-textColorMain text-sm">
+                              {product.Product_name}
+                            </p>
+                            <p className="text-textColorMuted text-xs">
+                              Qty: {product.product_quantity || 0} | Price:{" "}
+                              {Number(product.price || 0).toFixed(2)} | Category:{" "}
+                              {product.category || "N/A"}
+                            </p>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -706,7 +590,7 @@ const AdminDashboardPage = () => {
                   </div>
                 ))}
                 {!products.length && (
-                  <p className="text-textColorMuted text-sm">No products found.</p>
+                  <p className="text-textColorMuted text-sm">No products found in your catalog.</p>
                 )}
               </div>
             </section>
@@ -717,4 +601,4 @@ const AdminDashboardPage = () => {
   );
 };
 
-export default AdminDashboardPage;
+export default SellerDashboardPage;

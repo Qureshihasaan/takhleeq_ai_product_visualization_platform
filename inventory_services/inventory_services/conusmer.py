@@ -10,7 +10,6 @@ from . import setting
 from .database import engine
 from .model import Inventory_update, Stock_update
 
-loop = asyncio.get_event_loop()
 logging.basicConfig(level=logging.INFO)
 
 

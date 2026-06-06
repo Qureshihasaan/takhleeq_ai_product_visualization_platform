@@ -5,7 +5,6 @@ from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
 from . import setting
 
-loop = asyncio.get_event_loop()
 logging.basicConfig(level=logging.INFO)
 
 

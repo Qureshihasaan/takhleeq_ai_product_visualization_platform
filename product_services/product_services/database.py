@@ -17,6 +17,7 @@ class Product(SQLModel, table=True):
     category: Optional[str] = Field(
         default=None, description="Product category (e.g. t-shirt, mug, phone-case)"
     )
+    seller_id: int = Field(default=0, index=True)
 
 
 connection_strings = str(setting.PRODUCT_SERVICE_DATABASE_URL).replace(
@@ -29,6 +30,14 @@ engine = create_engine(connection_strings, connect_args={}, pool_recycle=300)
 
 def create_db_and_tables() -> None:
     SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        try:
+            from sqlalchemy import text
+            session.exec(text("ALTER TABLE product ADD COLUMN IF NOT EXISTS seller_id INTEGER DEFAULT 0;"))
+            session.commit()
+            print("✓ Checked/updated product table schema successfully")
+        except Exception as e:
+            print(f"✗ Failed to run product table migration: {e}")
 
 
 def get_session():

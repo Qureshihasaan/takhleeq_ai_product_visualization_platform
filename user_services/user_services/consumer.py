@@ -5,7 +5,6 @@ import asyncio
 import os
 from . import setting
 
-loop = asyncio.get_event_loop()
 logging.basicConfig(level=logging.INFO)
 
 

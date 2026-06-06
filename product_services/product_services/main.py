@@ -105,6 +105,7 @@ async def product_service(
         price=price,
         product_image=product_image_value,
         category=category,
+        seller_id=token_data.get("id") or 0,
     )
 
     session.add(product)
@@ -138,8 +139,12 @@ async def get_categories(
 @app.get("/product/", response_model=list[Product])
 async def get_product(
     session: Annotated[Session, Depends(get_session)],
+    seller_id: Optional[int] = None,
 ):
-    products = session.exec(select(Product)).all()
+    stmt = select(Product)
+    if seller_id is not None:
+        stmt = stmt.where(Product.seller_id == seller_id)
+    products = session.exec(stmt).all()
     # Performance fix: strip product_image in list endpoint to prevent massive base64 payloads.
     # Clients must use `/product/{product_id}/image?raw=true` to load images asynchronously.
     sanitized_products = []
@@ -151,6 +156,17 @@ async def get_product(
         else:
             sanitized_products.append(p)
     return sanitized_products
+
+
+@app.get("/product/{product_id}", response_model=Product)
+async def get_single_product(
+    product_id: int,
+    session: Annotated[Session, Depends(get_session)],
+):
+    db_product = session.get(Product, product_id)
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product Not Found")
+    return db_product
 
 
 @app.put("/product/{product_id}", response_model=Product)
@@ -165,13 +181,22 @@ async def update_product(
     if not db_product:
         raise HTTPException(status_code=404, detail="Product Not Found")
 
-    for fields, value in product.dict(exclude_unset=True).items():
+    # Enforce ownership check for sellers
+    if token_data.get("role") == "seller" and db_product.seller_id != token_data.get("id"):
+        raise HTTPException(status_code=403, detail="Role 'seller' is not authorized to edit this product")
+
+    # Prevent changing the seller ID
+    product_data = product.dict(exclude_unset=True)
+    if "seller_id" in product_data:
+        del product_data["seller_id"]
+
+    for fields, value in product_data.items():
         setattr(db_product, fields, value)
 
     session.commit()
     session.refresh(db_product)
     try:
-        event = {"event_type": "Product_Updated", "product": product.dict()}
+        event = {"event_type": "Product_Updated", "product": db_product.dict()}
         await producer.send_and_wait(
             setting.KAFKA_PRODUCT_TOPIC, json.dumps(event).encode("utf-8")
         )
@@ -192,6 +217,11 @@ async def delete_product(
     db_product = session.get(Product, product_id)
     if not db_product:
         raise HTTPException(status_code=404, detail="Product Not Found")
+
+    # Enforce ownership check for sellers
+    if token_data.get("role") == "seller" and db_product.seller_id != token_data.get("id"):
+        raise HTTPException(status_code=403, detail="Role 'seller' is not authorized to delete this product")
+
     product_dict = {field: getattr(db_product, field) for field in db_product.dict()}
     product_json = json.dumps(product_dict).encode("utf-8")
     print("product_json", product_json)

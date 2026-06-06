@@ -129,8 +129,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         <NavSection
           title="Settings"
           items={[
+            ...(currentUser?.role === "admin"
+              ? [{ name: "Admin Panel", icon: <Shield size={20} />, to: "/admin" }]
+              : []),
             ...(currentUser?.role === "seller"
-              ? [{ name: "Dashboard", icon: <Shield size={20} />, to: "/admin" }]
+              ? [{ name: "Dashboard", icon: <Shield size={20} />, to: "/seller/dashboard" }]
               : []),
             { name: "Contact", icon: <Mail size={20} />, to: "/contact" },
             { name: "Settings", icon: <Settings size={20} />, to: "/settings" },

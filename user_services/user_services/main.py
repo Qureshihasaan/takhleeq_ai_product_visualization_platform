@@ -80,9 +80,15 @@ async def create_user(
         )
 
     # Validate role
-    if user.role not in ("buyer", "seller", "admin"):
+    if user.role == "admin":
         raise HTTPException(
-            status_code=400, detail="Role must be 'buyer', 'seller', or 'admin'"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Public registration of Admin accounts is forbidden."
+        )
+
+    if user.role not in ("buyer", "seller"):
+        raise HTTPException(
+            status_code=400, detail="Role must be 'buyer' or 'seller'"
         )
 
     new_user = User(

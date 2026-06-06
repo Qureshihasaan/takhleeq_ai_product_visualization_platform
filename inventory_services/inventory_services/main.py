@@ -15,7 +15,6 @@ from .authenticate import validate_role
 from fastapi.middleware.cors import CORSMiddleware
 
 
-loop = asyncio.get_event_loop()
 logging.basicConfig(level=logging.INFO)
 
 

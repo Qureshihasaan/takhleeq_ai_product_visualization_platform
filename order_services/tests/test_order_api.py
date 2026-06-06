@@ -8,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from order_services.main import app, get_db
 from order_services.database import Order
+from order_services.authenticate import verify_token
 
 
 def test_get_order_returns_all_records():
@@ -39,8 +40,12 @@ def test_get_order_returns_all_records():
     async def no_lifespan(_app):
         yield
 
+    def override_verify_token():
+        return {"id": 1, "role": "buyer", "sub": "buyer1@example.com"}
+
     app.router.lifespan_context = no_lifespan
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_token] = override_verify_token
     with TestClient(app) as client:
         response = client.get("/get_order")
         assert response.status_code == 200
@@ -66,8 +71,12 @@ def test_get_single_order_not_found():
     async def no_lifespan(_app):
         yield
 
+    def override_verify_token():
+        return {"id": 1, "role": "buyer", "sub": "buyer1@example.com"}
+
     app.router.lifespan_context = no_lifespan
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_token] = override_verify_token
     with TestClient(app) as client:
         response = client.get("/get_single_order?order_id=404")
         assert response.status_code == 404
