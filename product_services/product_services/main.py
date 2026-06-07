@@ -71,7 +71,6 @@ app.add_middleware(
 
 @app.post("/product", response_model=Product)
 async def product_service(
-    Product_id: Annotated[int, Form()],
     Product_name: Annotated[str, Form()],
     Product_details: Annotated[str, Form()],
     product_quantity: Annotated[int, Form()],
@@ -79,6 +78,7 @@ async def product_service(
     producer: Annotated[AIOKafkaProducer, Depends(kafka_producer)],
     session: Annotated[Session, Depends(get_session)],
     token_data: Annotated[dict, Depends(validate_role(["seller", "admin"]))],
+    Product_id: Annotated[Optional[int], Form()] = None,
     file: Optional[UploadFile] = File(None),
     category: Optional[str] = Form(None),
 ) -> Product:
@@ -98,7 +98,6 @@ async def product_service(
             product_image_value = base64.b64encode(file_bytes).decode("utf-8")
 
     product = Product(
-        product_id=Product_id,
         Product_name=Product_name,
         Product_details=Product_details,
         product_quantity=product_quantity,
@@ -107,6 +106,9 @@ async def product_service(
         category=category,
         seller_id=token_data.get("id") or 0,
     )
+    if Product_id is not None and Product_id != 0:
+        product.product_id = Product_id
+
 
     session.add(product)
     session.commit()
