@@ -82,10 +82,10 @@ describe('Sidebar', () => {
       error: null,
     };
 
-    it('shows Dashboard link to /admin', () => {
+    it('shows Dashboard link to /seller/dashboard', () => {
       renderWithStore(sellerState);
       const link = screen.getByRole('link', { name: /dashboard/i });
-      expect(link.getAttribute('href')).toBe('/admin');
+      expect(link.getAttribute('href')).toBe('/seller/dashboard');
     });
   });
 

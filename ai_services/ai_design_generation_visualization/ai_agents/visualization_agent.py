@@ -9,8 +9,7 @@ from __future__ import annotations
 
 from agents import Agent, function_tool, AsyncOpenAI , OpenAIChatCompletionsModel
 
-import config
-from ai_agents.design_agent import openrouter_client, model as openrouter_model, generate_image_via_openrouter
+from ai_agents.design_agent import generate_image_via_replicate
 
 
 # ---------------------------------------------------------------------------
@@ -31,12 +30,12 @@ from ai_agents.design_agent import openrouter_client, model as openrouter_model,
 
 
 external_client = AsyncOpenAI(
-    base_url=config.GEMINI_BASE_URL,
-    api_key=config.GEMINI_API_KEY,
+    base_url="https://text.pollinations.ai/v1/",
+    api_key=getattr(config, "POLLINATIONS_API_KEY", None) or os.getenv("POLLINATIONS_API_KEY") or "dummy_key",
 )
 
 model = OpenAIChatCompletionsModel(
-    model="gemini-2.0-flash",
+    model="openai-fast",
     openai_client=external_client,
 )
 
@@ -67,7 +66,7 @@ async def apply_design_to_product(
         f"Additional instructions: {prompt}"
     )
 
-    result = await generate_image_via_openrouter(edit_prompt)
+    result = await generate_image_via_replicate(edit_prompt)
     if not result:
         return "ERROR: Visualization failed — no image data was returned."
     return result

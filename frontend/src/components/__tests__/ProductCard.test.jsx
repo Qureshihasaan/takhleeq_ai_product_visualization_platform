@@ -20,7 +20,7 @@ describe('ProductCard', () => {
 
   it('renders the price', () => {
     render(<ProductCard {...defaultProps} />);
-    expect(screen.getByText('$29.99')).toBeTruthy();
+    expect(screen.getByText('Rs. 29.99')).toBeTruthy();
   });
 
   it('renders all tags', () => {

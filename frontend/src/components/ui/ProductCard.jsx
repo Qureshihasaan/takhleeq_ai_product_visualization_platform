@@ -36,7 +36,7 @@ const ProductCard = ({
               src={image}
               alt={title}
               onError={() => setImageFailed(true)}
-              className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full bg-black flex flex-col items-center justify-center p-4">

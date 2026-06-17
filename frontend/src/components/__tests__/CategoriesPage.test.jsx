@@ -55,8 +55,8 @@ describe('CategoriesPage', () => {
     productService.getAllProducts.mockResolvedValue(mockProducts);
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText('T-Shirt')).toBeTruthy();
-      expect(screen.getByText('Hoodie')).toBeTruthy();
+      expect(screen.getAllByText('T-Shirt').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Hoodie').length).toBeGreaterThanOrEqual(1);
     });
   });
 

@@ -10,15 +10,16 @@ const PRODUCTS_BASE_URL =
 
 const getProductImageUrl = (product) => {
   if (!product) return "";
-  if (product.product_image) {
-    const img = product.product_image;
-    if (img.startsWith("data:") || img.startsWith("http")) return img;
-    return `data:image/png;base64,${img}`;
+  const img = product.product_image;
+  if (!img) return ""; // No image uploaded
+  if (img === "local" || img === "base64") {
+    const pId = product.product_id ?? product.Product_id ?? product.id;
+    if (pId) {
+      return `${PRODUCTS_BASE_URL}/product/${pId}/image?raw=true`;
+    }
   }
-  if (product.product_id) {
-    return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image?raw=true`;
-  }
-  return "";
+  if (img.startsWith("data:") || img.startsWith("http")) return img;
+  return `data:image/png;base64,${img}`;
 };
 
 const getOrderCustomImageUrl = (order) => {

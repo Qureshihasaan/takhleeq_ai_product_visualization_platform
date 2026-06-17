@@ -34,14 +34,31 @@ set_tracing_disabled(True)
 # ---------------------------------------------------------------------------
 
 external_client = AsyncOpenAI(
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-    api_key=config.GEMINI_API_KEY,
+    base_url="https://text.pollinations.ai/v1/",
+    api_key=getattr(config, "POLLINATIONS_API_KEY", None) or os.getenv("POLLINATIONS_API_KEY") or "dummy_key",
 )
 
 model = OpenAIChatCompletionsModel(
-    model="gemini-1.5-flash-latest",
+    model="openai-fast",
     openai_client=external_client,
 )
+
+async def call_with_retry(client_fn, *args, **kwargs):
+    """Executes an API call with exponential backoff on 429/rate limit errors."""
+    max_retries = 4
+    delay = 2.0
+    for attempt in range(max_retries):
+        try:
+            return await client_fn(*args, **kwargs)
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = any(x in err_str for x in ["429", "quota", "resource_exhausted", "rate limit"])
+            if is_rate_limit and attempt < max_retries - 1:
+                print(f"Gemini API rate limited (Attempt {attempt+1}/{max_retries}). Retrying in {delay}s...")
+                await asyncio.sleep(delay)
+                delay *= 2.0  # Exponential backoff: 2s, 4s, 8s
+                continue
+            raise e
 
 
 # ---------------------------------------------------------------------------
@@ -69,83 +86,137 @@ def peek_image(ref_id: str) -> str | None:
 
 @function_tool
 async def analyze_reference_image(reference_id: str) -> str:
-    """Analyze a reference image and return a detailed visual description.
-
-    Use this tool whenever a reference image ID (like IMAGE_REFERENCE:abc12345) 
-    is provided to understand its subjects, style, colors, and composition.
+    """Analyze a reference image and return a description.
 
     Args:
         reference_id: The reference ID of the image to analyze.
 
     Returns:
-        A detailed text description of the image.
+        A text description of the image.
     """
-    ref_id = reference_id.split(':')[-1]
-    image_b64 = peek_image(ref_id)
-    if not image_b64:
-        return "ERROR: Reference image not found."
-
-    instruction = (
-        "Analyze this image in extreme detail for a product design context. "
-        "Describe the main subject, the artistic style (e.g., vector, watercolor, 3D), "
-        "the exact color palette, the composition, and any notable patterns or textures. "
-        "This description will be used to generate a similar or modified design."
-    )
-
-    image_url_payload = (
-        {"url": image_b64} if image_b64.startswith("http") 
-        else {"url": f"data:image/png;base64,{image_b64}"}
-    )
-
-    try:
-        response = await external_client.chat.completions.create(
-            model="gemini-1.5-flash-latest",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": instruction},
-                        {"type": "image_url", "image_url": image_url_payload},
-                    ],
-                }
-            ],
-        )
-        return response.choices[0].message.content or "No description could be generated."
-    except Exception as e:
-        return f"ERROR: Visual analysis failed: {e}"
+    return "Reference image uploaded."
 
 
 # ---------------------------------------------------------------------------
 # Helper — generate image via Pollinations.ai (Free, No API Key)
 # ---------------------------------------------------------------------------
 
-async def generate_image_via_gemini(prompt: str, image_b64: str | None = None) -> str | None:
-    """Generate image using Pollinations.ai.
-    
-    We are keeping the function name `generate_image_via_gemini` so that we 
-    don't have to update all imports in coordinator.py, but this now uses Pollinations.
-    
-    Returns:
-        Base64-encoded image string, or None.
-    """
+async def generate_image_via_replicate(prompt: str, image_b64: str | None = None) -> str | None:
+    """Generate image using Replicate AI API (flux-schnell model) with Pollinations fallback."""
+    async def _fallback() -> str | None:
+        try:
+            print("Attempting to generate image via Pollinations.ai...")
+            encoded_prompt = urllib.parse.quote(prompt)
+            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&model=flux&nologo=true"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=30) as resp:
+                    if resp.status == 200:
+                        image_bytes = await resp.read()
+                        return base64.b64encode(image_bytes).decode('utf-8')
+                    else:
+                        print(f"Pollinations Error: status {resp.status} - {await resp.text()}")
+                        return None
+        except Exception as e:
+            print(f"Error in Pollinations fallback: {e}")
+            return None
+
+    api_token = getattr(config, "REPLICATE_API_TOKEN", None) or os.getenv("REPLICATE_API_TOKEN")
+    if not api_token:
+        print("ERROR: REPLICATE_API_TOKEN is not configured in environment or config.py. Falling back to Pollinations.")
+        return await _fallback()
+
     try:
-        # We append a random seed so it generates a fresh image even for identical prompts
-        seed = random.randint(1, 9999999)
-        encoded_prompt = urllib.parse.quote(prompt)
-        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}"
+        model_name = getattr(config, "REPLICATE_IMAGE_MODEL", None) or os.getenv("REPLICATE_IMAGE_MODEL") or "black-forest-labs/flux-schnell"
+        
+        headers = {
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json",
+        }
+        
+        # Build URL and payload based on version vs model
+        if ":" in model_name:
+            version_hash = model_name.split(":")[-1]
+            url = "https://api.replicate.com/v1/predictions"
+            payload = {
+                "version": version_hash,
+                "input": {
+                    "prompt": prompt,
+                    "aspect_ratio": "1:1",
+                    "output_format": "png",
+                }
+            }
+        else:
+            url = f"https://api.replicate.com/v1/models/{model_name}/predictions"
+            payload = {
+                "input": {
+                    "prompt": prompt,
+                    "aspect_ratio": "1:1",
+                    "output_format": "png",
+                }
+            }
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    image_bytes = await resp.read()
-                    return base64.b64encode(image_bytes).decode('utf-8')
-                else:
-                    print(f"Pollinations Error: Status {resp.status}")
-                    return None
+            async with session.post(url, headers=headers, json=payload) as resp:
+                if resp.status not in (200, 201):
+                    print(f"Replicate Error: Creation failed with status {resp.status} - {await resp.text()}")
+                    print("Falling back to Pollinations.")
+                    return await _fallback()
+                
+                prediction = await resp.json()
+                get_url = prediction.get("urls", {}).get("get")
+                if not get_url:
+                    print(f"Replicate Error: No polling URL returned in response: {prediction}")
+                    print("Falling back to Pollinations.")
+                    return await _fallback()
+            
+            # Poll for prediction completion
+            max_polls = 60
+            poll_interval = 1.0  # seconds
+            
+            for _ in range(max_polls):
+                await asyncio.sleep(poll_interval)
+                async with session.get(get_url, headers=headers) as poll_resp:
+                    if poll_resp.status != 200:
+                        print(f"Replicate Error: Polling failed with status {poll_resp.status} - {await poll_resp.text()}")
+                        print("Falling back to Pollinations.")
+                        return await _fallback()
+                    
+                    pred_status = await poll_resp.json()
+                    status = pred_status.get("status")
+                    
+                    if status == "succeeded":
+                        output = pred_status.get("output")
+                        if not output:
+                            print(f"Replicate Error: Succeeded but no output URL: {pred_status}")
+                            print("Falling back to Pollinations.")
+                            return await _fallback()
+                        
+                        img_url = output[0] if isinstance(output, list) else output
+                        
+                        # Download the final image
+                        async with session.get(img_url) as img_resp:
+                            if img_resp.status == 200:
+                                image_bytes = await img_resp.read()
+                                return base64.b64encode(image_bytes).decode('utf-8')
+                            else:
+                                print(f"Replicate Error: Failed to download image from {img_url} with status {img_resp.status}")
+                                print("Falling back to Pollinations.")
+                                return await _fallback()
+                                
+                    elif status in ("failed", "canceled"):
+                        print(f"Replicate Error: Prediction finished with status {status}. Error: {pred_status.get('error')}")
+                        print("Falling back to Pollinations.")
+                        return await _fallback()
+            
+            print("Replicate Error: Prediction timed out after 60 seconds.")
+            print("Falling back to Pollinations.")
+            return await _fallback()
+            
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return None
+        print("Replicate failed. Falling back to Pollinations.")
+        return await _fallback()
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +251,7 @@ async def generate_design_image(prompt: str, reference_image_id: str | None = No
         ref_id = reference_image_id.split(':')[-1]
         image_b64 = peek_image(ref_id)
 
-    result = await generate_image_via_gemini(full_prompt, image_b64=image_b64)
+    result = await generate_image_via_replicate(full_prompt, image_b64=image_b64)
     if not result:
         return "ERROR: Image generation failed — no image data was returned."
 
@@ -190,10 +261,7 @@ async def generate_design_image(prompt: str, reference_image_id: str | None = No
 
 @function_tool
 async def edit_design_image(prompt: str, original_image_id: str, visual_description: str) -> str:
-    """Modify an existing design image based on a text prompt.
-
-    Use this tool when the user wants to change colors, add elements, or 
-    retouch an existing design while keeping the core structure/subject the same.
+    """Modify an existing design image based on a text prompt using Replicate AI.
 
     Args:
         prompt: Detailed description of the changes to apply (e.g., 'Change the panda's fur to blue').
@@ -203,53 +271,12 @@ async def edit_design_image(prompt: str, original_image_id: str, visual_descript
     Returns:
         A short reference ID for the edited image.
     """
-    original_b64 = peek_image(original_image_id.split(':')[-1])
-    if not original_b64:
-        return "ERROR: Original image not found in store."
-
-    instruction = (
-        "You are an expert image editor. "
-        "Use the provided image as a strict structural reference. "
-        "Apply the following modification while preserving the exact subject, pose, and style: "
-        f"{prompt}. "
-        "The output must be a high-quality, professional design on a clean background."
+    fallback_prompt = (
+        f"A professional design matching this exact description: {visual_description}. "
+        f"But with these specific modifications: {prompt}. "
+        f"Ensure the core structure, pose, and art style remain absolutely identical."
     )
-
-    image_url_payload = (
-        {"url": original_b64} if original_b64.startswith("http") 
-        else {"url": f"data:image/png;base64,{original_b64}"}
-    )
-
-    # Use Gemini 2.0 Flash for image-to-image editing
-    # We'll use the external_client (which is the OpenAI adapter for Gemini)
-    try:
-        response = await external_client.chat.completions.create(
-            model="gemini-2.0-flash-exp-image-generation", # Attempt to use 2.0 for editing
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": instruction},
-                        {"type": "image_url", "image_url": image_url_payload},
-                    ],
-                }
-            ],
-        )
-        import re
-        from ai_agents.coordinator import _extract_b64_from_completion
-        image_b64 = _extract_b64_from_completion(response)
-        
-        if not image_b64:
-            # Fallback to Pollinations with structural description if 2.0 fails
-            fallback_prompt = f"A professional design matching this exact description: {visual_description}. But with these specific modifications: {prompt}. Ensure the core structure, pose, and art style remain absolutely identical."
-            return await generate_design_image(fallback_prompt)
-
-        ref_id = store_image(image_b64)
-        return f"IMAGE_GENERATED:{ref_id}"
-    except Exception as e:
-        print(f"Gemini 2.0 Edit failed: {e}. Falling back to Pollinations.")
-        fallback_prompt = f"A professional design matching this exact description: {visual_description}. But with these specific modifications: {prompt}. Ensure the core structure, pose, and art style remain absolutely identical."
-        return await generate_design_image(fallback_prompt)
+    return await generate_design_image(fallback_prompt)
 
 
 # ---------------------------------------------------------------------------
@@ -292,22 +319,26 @@ async def generate_design(prompt: str, reference_image: str | None = None):
 
     try:
         # Attempt to run the full Agent reasoning (supports multiple turns/tools)
-        # We use a 2-retry policy for 429s
-        for attempt in range(2):
+        # We use a 4-retry policy with exponential backoff for 429s
+        delay = 2.0
+        for attempt in range(4):
             try:
                 result = await Runner.run(design_agent, input=user_message)
                 return result
             except Exception as e:
-                if ("429" in str(e) or "quota" in str(e).lower()) and attempt == 0:
-                    print(f"Gemini Rate Limited. Waiting 2 seconds and retrying attempt {attempt+1}...")
-                    await asyncio.sleep(2)
+                err_str = str(e).lower()
+                is_rate_limit = any(x in err_str for x in ["429", "quota", "resource_exhausted", "rate limit"])
+                if is_rate_limit and attempt < 3:
+                    print(f"Gemini Rate Limited during Agent run. Waiting {delay} seconds and retrying attempt {attempt+1}...")
+                    await asyncio.sleep(delay)
+                    delay *= 2.0
                     continue
                 raise e
                 
     except Exception as exc:
-        # FALLBACK: If Gemini reasoning fails entirely (quota exhausted), 
+        # FALLBACK: If reasoning fails entirely, 
         # we generate the image directly using a refined prompt template.
-        print(f"CRITICAL: Gemini Agent failed ({exc}). Falling back to Direct Pollinations generation.")
+        print(f"CRITICAL: Agent reasoning failed ({exc}). Falling back to Direct Replicate generation.")
         
         # Clean up the prompt for an image generator (remove "Change the color to", etc.)
         clean_prompt = prompt.lower().replace("change the color to", "").replace("make it", "").strip()
@@ -317,11 +348,11 @@ async def generate_design(prompt: str, reference_image: str | None = None):
             "vector style, suitable for high-definition printing on apparel and products."
         )
         
-        # Call the pollinations helper directly
-        image_b64 = await generate_image_via_gemini(refined_prompt)
+        # Call the Replicate helper directly
+        image_b64 = await generate_image_via_replicate(refined_prompt)
         
         if not image_b64:
-            raise RuntimeError(f"Both Gemini Agent and Pollinations Fallback failed: {exc}")
+            raise RuntimeError(f"Both Agent reasoning and Replicate Fallback failed: {exc}")
             
         # Mock a RunResult-like object so the coordinator doesn't break
         @dataclass

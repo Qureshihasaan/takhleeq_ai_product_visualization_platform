@@ -43,8 +43,20 @@ def upload_base64_image(image_data: str, filename: str) -> Optional[str]:
         return None
 
     try:
-        raw_base64 = image_data.split(",", 1)[1] if image_data.startswith("data:") else image_data
-        file_bytes = base64.b64decode(raw_base64)
+        # Clean up formatting, quotes, and whitespace
+        cleaned = image_data.strip().strip('"').strip("'")
+        if cleaned.startswith("data:"):
+            cleaned = cleaned.split("base64,", 1)[-1]
+        
+        # Remove all internal whitespaces/newlines
+        cleaned = "".join(cleaned.split())
+        
+        # Ensure correct padding
+        missing_padding = len(cleaned) % 4
+        if missing_padding:
+            cleaned += '=' * (4 - missing_padding)
+            
+        file_bytes = base64.b64decode(cleaned)
         result = cloudinary.uploader.upload(
             file_bytes,
             folder="takhleeq/products",

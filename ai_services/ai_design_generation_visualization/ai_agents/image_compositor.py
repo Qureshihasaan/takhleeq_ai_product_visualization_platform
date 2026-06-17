@@ -4,16 +4,45 @@ import base64
 import io
 import cv2
 import numpy as np
+import urllib.request
 
 def _decode_image(image_b64: str) -> np.ndarray:
-    """Decode base64 to OpenCV image (BGRA)."""
-    if image_b64.startswith("data:"):
-        image_b64 = image_b64.split("base64,", 1)[-1]
-    image_bytes = base64.b64decode(image_b64)
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
-    if img is None:
-        raise ValueError("Could not decode image")
+    """Decode base64 or URL to OpenCV image (BGRA)."""
+    # Clean up formatting, quotes, and whitespace
+    cleaned = image_b64.strip().strip('"').strip("'")
+    
+    if cleaned.startswith("http://") or cleaned.startswith("https://"):
+        try:
+            req = urllib.request.Request(
+                cleaned, 
+                headers={'User-Agent': 'Mozilla/5.0'}
+            )
+            with urllib.request.urlopen(req, timeout=15) as response:
+                image_bytes = response.read()
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
+            if img is None:
+                raise ValueError("Could not decode downloaded image")
+        except Exception as e:
+            raise ValueError(f"Failed to download or decode image from URL: {e}")
+    else:
+        if cleaned.startswith("data:"):
+            cleaned = cleaned.split("base64,", 1)[-1]
+        
+        # Remove all internal whitespaces/newlines
+        cleaned = "".join(cleaned.split())
+        
+        # Ensure correct padding
+        missing_padding = len(cleaned) % 4
+        if missing_padding:
+            cleaned += '=' * (4 - missing_padding)
+            
+        image_bytes = base64.b64decode(cleaned)
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            raise ValueError("Could not decode image")
+            
     if img.shape[2] == 3:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
     return img

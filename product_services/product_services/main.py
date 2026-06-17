@@ -5,9 +5,10 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Annotated, AsyncGenerator, List, Optional
 from aiokafka import AIOKafkaProducer
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, Response
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import select
+from sqlalchemy import case
 from fastapi.responses import RedirectResponse
 from . import setting
 from .authenticate import validate_role
@@ -62,7 +63,7 @@ app: FastAPI = FastAPI(lifespan=lifespan, version="1.0.0")
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"  ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -131,10 +132,9 @@ async def get_categories(
     token_data: Annotated[dict, Depends(validate_role(["seller", "admin", "buyer"]))],
 ):
     """Return a deduplicated, sorted list of all product categories in the database."""
-    products = session.exec(select(Product)).all()
-    categories = sorted(
-        {p.category for p in products if p.category}
-    )
+    # Query only the category column from the database, preventing loading base64 images
+    categories_result = session.exec(select(Product.category).where(Product.category != None)).all()
+    categories = sorted(list(set(categories_result)))
     return categories
 
 
@@ -143,21 +143,27 @@ async def get_product(
     session: Annotated[Session, Depends(get_session)],
     seller_id: Optional[int] = None,
 ):
-    stmt = select(Product)
+    # Optimize query to fetch only the metadata and keep product_image as 'local' if it exists.
+    # This prevents transferring massive base64 payloads from PostgreSQL.
+    stmt = select(
+        Product.product_id,
+        Product.Product_name,
+        Product.Product_details,
+        Product.product_quantity,
+        Product.price,
+        Product.category,
+        Product.seller_id,
+        case(
+            (Product.product_image == None, None),
+            (Product.product_image.like("http%"), Product.product_image),
+            else_="local"
+        ).label("product_image")
+    )
     if seller_id is not None:
         stmt = stmt.where(Product.seller_id == seller_id)
-    products = session.exec(stmt).all()
-    # Performance fix: strip product_image in list endpoint to prevent massive base64 payloads.
-    # Clients must use `/product/{product_id}/image?raw=true` to load images asynchronously.
-    sanitized_products = []
-    for p in products:
-        if p.product_image:
-            product_data = p.dict()
-            product_data["product_image"] = None
-            sanitized_products.append(Product(**product_data))
-        else:
-            sanitized_products.append(p)
-    return sanitized_products
+    
+    results = session.execute(stmt).all()
+    return [Product(**row._mapping) for row in results]
 
 
 @app.get("/product/{product_id}", response_model=Product)
@@ -168,7 +174,12 @@ async def get_single_product(
     db_product = session.get(Product, product_id)
     if not db_product:
         raise HTTPException(status_code=404, detail="Product Not Found")
-    return db_product
+    
+    # Performance fix: strip heavy base64 product_image for consistent caching behavior
+    product_data = db_product.dict()
+    if product_data.get("product_image") and not product_data["product_image"].startswith("http"):
+        product_data["product_image"] = "local"
+    return Product(**product_data)
 
 
 @app.put("/product/{product_id}", response_model=Product)
@@ -247,6 +258,7 @@ async def delete_product(
 @app.get("/product/{product_id}/image")
 async def get_product_image(
     product_id: int,
+    request: Request,
     raw: bool = False,
     session: Session = Depends(get_session),
 ):
@@ -270,10 +282,44 @@ async def get_product_image(
     if raw:
         try:
             b64_str = db_product.product_image
-            if "," in b64_str:
-                b64_str = b64_str.split(",", 1)[1]
-            image_bytes = base64.b64decode(b64_str)
-            return Response(content=image_bytes, media_type="image/png")
+            
+            # Clean up formatting, quotes, and whitespace
+            cleaned = b64_str.strip().strip('"').strip("'")
+            if "," in cleaned:
+                cleaned = cleaned.split(",", 1)[1]
+            
+            # Remove all internal whitespaces/newlines
+            cleaned = "".join(cleaned.split())
+            
+            # Ensure correct padding
+            missing_padding = len(cleaned) % 4
+            if missing_padding:
+                cleaned += '=' * (4 - missing_padding)
+            
+            # Browser caching optimization: compute ETag based on image content
+            import hashlib
+            etag = f'W/"{hashlib.md5(cleaned.encode()).hexdigest()}"'
+            
+            # Check If-None-Match header for cache validation
+            if_none_match = request.headers.get("if-none-match")
+            if if_none_match == etag:
+                return Response(
+                    status_code=304, 
+                    headers={
+                        "ETag": etag, 
+                        "Cache-Control": "public, max-age=31536000, must-revalidate"
+                    }
+                )
+                
+            image_bytes = base64.b64decode(cleaned)
+            return Response(
+                content=image_bytes, 
+                media_type="image/png",
+                headers={
+                    "ETag": etag,
+                    "Cache-Control": "public, max-age=31536000, must-revalidate"
+                }
+            )
         except Exception as e:
             logger.error(f"Failed to decode base64 image for product {product_id}: {e}")
             raise HTTPException(

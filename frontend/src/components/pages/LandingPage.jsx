@@ -12,14 +12,15 @@ const PRODUCTS_BASE_URL =
 
 const getProductImageUrl = (product) => {
   if (!product) return "";
-  if (product.product_image) {
-    const img = product.product_image;
-    if (img.startsWith("data:") || img.startsWith("http")) return img;
-    return `data:image/png;base64,${img}`;
+  const img = product.product_image;
+  if (!img) return ""; // No image uploaded
+  if (img === "local" || img === "base64") {
+    const productId = getProductId(product);
+    if (!productId) return "";
+    return `${PRODUCTS_BASE_URL}/product/${productId}/image?raw=true`;
   }
-  const productId = getProductId(product);
-  if (!productId) return "";
-  return `${PRODUCTS_BASE_URL}/product/${productId}/image?raw=true`;
+  if (img.startsWith("data:") || img.startsWith("http")) return img;
+  return `data:image/png;base64,${img}`;
 };
 
 const getProductId = (product) =>
@@ -42,7 +43,6 @@ const getProductCategory = (product) =>
 const LandingPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showIntroLoader, setShowIntroLoader] = useState(true);
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
@@ -66,11 +66,6 @@ const LandingPage = () => {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setShowIntroLoader(false), 900);
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleAddToCart = (product) => {
     const productId = getProductId(product);
     addToCart({
@@ -82,7 +77,7 @@ const LandingPage = () => {
     });
   };
 
-  if (loading || showIntroLoader) {
+  if (loading) {
     return (
       <div className="fixed inset-0 z-50 bg-backgroundColor flex flex-col items-center justify-center px-paddingLarge">
         <EqualizerLoader size="lg" />
@@ -154,7 +149,7 @@ const LandingPage = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-paddingLarge">
-              {loading || showIntroLoader ? (
+              {loading ? (
                 <div className="col-span-full flex flex-col items-center justify-center py-12">
                   <EqualizerLoader size="lg" />
                   <p className="mt-4 text-textColorMuted text-sm uppercase tracking-[0.2em]">

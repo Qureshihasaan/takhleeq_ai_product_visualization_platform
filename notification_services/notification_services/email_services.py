@@ -1,5 +1,8 @@
 import smtplib , logging
+import base64
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from fastapi import HTTPException
 from . import setting
 from .notification_store import record_email_notification
@@ -13,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 #     try:
 
 
-async def send_email(user_email : str , body : str , subject : str):
+async def send_email(user_email : str , body : str , subject : str, custom_product_image: str = None):
     try:
         record_email_notification(user_email=user_email, subject=subject, body=body)
         sender_email = setting.SENDER_EMAIL
@@ -26,10 +29,48 @@ async def send_email(user_email : str , body : str , subject : str):
             logging.info(f"Email content: {body[:100]}...")
             return
 
-        message = MIMEText(body , "plain")
-        message["Subject"] = subject
-        message["From"] = sender_email
-        message["To"] = user_email
+        if custom_product_image:
+            message = MIMEMultipart("related")
+            message["Subject"] = subject
+            message["From"] = sender_email
+            message["To"] = user_email
+            
+            # HTML version of body
+            html_body = body.replace("\n", "<br>")
+            
+            # Plain text part
+            msg_alternative = MIMEMultipart("alternative")
+            message.attach(msg_alternative)
+            
+            if custom_product_image.startswith("http"):
+                text_part = MIMEText(body + f"\n\nCustom design visualization: {custom_product_image}", "plain")
+                html_part = MIMEText(html_body + f'<br><br><strong>Custom Design Visualization:</strong><br><img src="{custom_product_image}" style="max-width: 400px; height: auto; border: 1px solid #ccc; border-radius: 8px;" />', "html")
+                msg_alternative.attach(text_part)
+                msg_alternative.attach(html_part)
+            else:
+                text_part = MIMEText(body, "plain")
+                html_part = MIMEText(html_body + '<br><br><strong>Custom Design Visualization:</strong><br><img src="cid:custom_design_img" style="max-width: 400px; height: auto; border: 1px solid #ccc; border-radius: 8px;" />', "html")
+                msg_alternative.attach(text_part)
+                msg_alternative.attach(html_part)
+                
+                # Base64 image attachment
+                b64_data = custom_product_image
+                if "," in b64_data:
+                    b64_data = b64_data.split(",")[1]
+                
+                try:
+                    img_data = base64.b64decode(b64_data)
+                    mime_image = MIMEImage(img_data)
+                    mime_image.add_header("Content-ID", "<custom_design_img>")
+                    mime_image.add_header("Content-Disposition", "inline", filename="custom_design.png")
+                    message.attach(mime_image)
+                except Exception as img_err:
+                    logging.error(f"Failed to attach base64 image: {img_err}")
+        else:
+            message = MIMEText(body , "plain")
+            message["Subject"] = subject
+            message["From"] = sender_email
+            message["To"] = user_email
 
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()

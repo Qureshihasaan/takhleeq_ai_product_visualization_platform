@@ -96,7 +96,6 @@ async def create_order(order : Order , producer : Annotated[AIOKafkaProducer, De
     session.refresh(order)
     try:
         event_order = order.dict()
-        event_order["custom_product_image"] = None
         event = {"event_type" : "Order_Created" , "order" : event_order}
         await producer.send_and_wait(setting.KAFKA_ORDER_TOPIC, json.dumps(event).encode('utf-8'))
         print("Order Details Send to kafka topic....")
@@ -136,7 +135,6 @@ async def update_order(order_id : int , update_order : Order , producer : Annota
     session.refresh(db_order)
     try:    
         event_order = db_order.dict()
-        event_order["custom_product_image"] = None
         event = {"event_type" : "Order_Updated" , "order" : event_order}
         await producer.send_and_wait(setting.KAFKA_ORDER_TOPIC, json.dumps(event).encode('utf-8'))
         print("Updated Order Details Send to kafka topic....")
@@ -197,7 +195,6 @@ async def delete_order(order_id : int , session : Annotated[Session , Depends(ge
     session.commit()
     try:
         event_order = order.dict()
-        event_order["custom_product_image"] = None
         event = {"event_type" : "Order_Deleted" , "order" : event_order}
         await producer.send_and_wait(setting.KAFKA_ORDER_TOPIC, json.dumps(event).encode('utf-8'))
         print("Order Details Send to kafka topic....")

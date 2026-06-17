@@ -43,12 +43,14 @@ const getBase64Src = (b64String) => {
 
 const getProductImageUrl = (product) => {
   if (!product) return "";
-  if (product.product_image) {
-    return getBase64Src(product.product_image);
+  const img = product.product_image;
+  if (!img) return ""; // No image uploaded
+  if (img === "local" || img === "base64") {
+    const productId = getProductId(product);
+    if (!productId) return "";
+    return `${PRODUCTS_BASE_URL}/product/${productId}/image?raw=true`;
   }
-  const productId = getProductId(product);
-  if (!productId) return "";
-  return `${PRODUCTS_BASE_URL}/product/${productId}/image?raw=true`;
+  return getBase64Src(img);
 };
 
 const getProductId = (product) => product?.product_id ?? product?.Product_id ?? product?.id;

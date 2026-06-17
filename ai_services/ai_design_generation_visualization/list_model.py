@@ -1,8 +1,8 @@
 from google import genai
 import os
+from dotenv import load_dotenv
 
-# Use your API key directly or from environment variables
-# api_key = os.getenv("GEMINI_API_KEY")
+load_dotenv()
 
 # Initialize the new Unified Client
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))

@@ -125,8 +125,8 @@ async def ai_center_create(
         # Step 1: Get product image
         product_image_b64 = request.product_image
 
-        if not product_image_b64:
-            # Auto-fetch base64 from Product Service
+        if not product_image_b64 or product_image_b64 == "local":
+            # Auto-fetch base64/URL from Product Service
             logger.info(
                 "Fetching product image for product_id=%d from Product Service",
                 request.product_id,
@@ -139,6 +139,11 @@ async def ai_center_create(
                     if resp.status_code == 200:
                         product_image_b64 = resp.json().get("product_image")
                         logger.info("Product image fetched successfully")
+                    elif resp.status_code in (301, 302, 303, 307, 308):
+                        redirect_url = resp.headers.get("Location")
+                        if redirect_url:
+                            product_image_b64 = redirect_url
+                            logger.info("Product image URL fetched from redirect: %s", redirect_url)
                     else:
                         logger.warning(
                             "Product Service returned status %d for product_id=%d", 

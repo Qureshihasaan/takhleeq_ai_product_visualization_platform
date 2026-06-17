@@ -92,7 +92,7 @@ describe("API service request validation", () => {
     vi.clearAllMocks();
   });
 
-  it("authService.login sends JSON payload to /login_json", async () => {
+  it("authService.login sends URLSearchParams payload to /login", async () => {
     usersApi.post.mockResolvedValue({ data: { access_token: "token" } });
 
     const payload = { username: "test-user", password: "secret" };
@@ -100,10 +100,15 @@ describe("API service request validation", () => {
 
     expect(result).toEqual({ access_token: "token" });
     expect(usersApi.post).toHaveBeenCalledTimes(1);
-    expect(usersApi.post).toHaveBeenCalledWith("/login_json", {
-      username: "test-user",
-      password: "secret",
-    });
+    
+    const url = usersApi.post.mock.calls[0][0];
+    const data = usersApi.post.mock.calls[0][1];
+    const config = usersApi.post.mock.calls[0][2];
+    
+    expect(url).toBe("/login");
+    expect(data.get("username")).toBe("test-user");
+    expect(data.get("password")).toBe("secret");
+    expect(config.headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
   });
 
   it("authService.register sends a complete registration payload", async () => {
@@ -126,7 +131,7 @@ describe("API service request validation", () => {
     });
   });
 
-  it("authService.googleAuth sends id_token and never sends null values", async () => {
+  it("authService.googleAuth sends id_token and role values", async () => {
     usersApi.post.mockResolvedValue({ data: { success: true } });
 
     const result = await authService.googleAuth("token-value");
@@ -134,6 +139,7 @@ describe("API service request validation", () => {
     expect(result).toEqual({ success: true });
     expect(usersApi.post).toHaveBeenCalledWith("/auth/google", {
       id_token: "token-value",
+      role: "buyer",
     });
   });
 

@@ -130,21 +130,21 @@ describe("AdminDashboardPage (unit)", () => {
     });
   });
 
-  it("shows access denied for non-seller roles", () => {
+  it("shows access denied for non-admin roles", () => {
     renderPage({ id: 9, username: "buyer", email: "x@test.com", role: "buyer" });
 
-    expect(screen.getByText("Seller Dashboard")).toBeTruthy();
-    expect(screen.getByText(/Seller accounts only/i)).toBeTruthy();
+    expect(screen.getByText("Admin Dashboard")).toBeTruthy();
+    expect(screen.getByText(/Admin accounts only/i)).toBeTruthy();
     expect(getAllUsers).not.toHaveBeenCalled();
   });
 
-  it("loads metrics and lists for a seller after APIs resolve", async () => {
-    renderPage({ id: 2, username: "seller1", email: "s@test.com", role: "seller" });
+  it("loads metrics and lists for an admin after APIs resolve", async () => {
+    renderPage({ id: 2, username: "admin1", email: "admin@test.com", role: "admin" });
 
     expect(screen.getByText("Loading dashboard...")).toBeTruthy();
 
     await waitFor(() => {
-      expect(screen.getByText("Seller Dashboard")).toBeTruthy();
+      expect(screen.getByText("Operational overview powered by live backend data.")).toBeTruthy();
     });
 
     expect(getAllUsers).toHaveBeenCalledTimes(1);
@@ -166,7 +166,7 @@ describe("AdminDashboardPage (unit)", () => {
       response: { data: { detail: "Forbidden" } },
     });
 
-    renderPage({ id: 2, username: "seller1", email: "s@test.com", role: "seller" });
+    renderPage({ id: 2, username: "admin1", email: "admin@test.com", role: "admin" });
 
     await waitFor(() => {
       expect(screen.getByText("Forbidden")).toBeTruthy();
@@ -178,7 +178,7 @@ describe("AdminDashboardPage (unit)", () => {
     createProduct.mockResolvedValue({});
     defaultApi();
 
-    renderPage({ id: 2, username: "seller1", email: "s@test.com", role: "seller" });
+    renderPage({ id: 2, username: "admin1", email: "admin@test.com", role: "admin" });
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText("Product name")).toBeTruthy();
@@ -217,7 +217,7 @@ describe("AdminDashboardPage (unit)", () => {
     vi.stubGlobal("confirm", vi.fn(() => true));
     deleteUser.mockResolvedValue({});
 
-    renderPage({ id: 2, username: "seller1", email: "s@test.com", role: "seller" });
+    renderPage({ id: 2, username: "admin1", email: "admin@test.com", role: "admin" });
 
     await waitFor(() => {
       expect(screen.getByText("buyer1")).toBeTruthy();
@@ -265,7 +265,7 @@ describe("AdminDashboardPage (integration-style)", () => {
 
   it("submits order status update to order service", async () => {
     const user = userEvent.setup();
-    renderPage({ id: 2, username: "seller1", email: "s@test.com", role: "seller" });
+    renderPage({ id: 2, username: "admin1", email: "admin@test.com", role: "admin" });
 
     await waitFor(() => {
       expect(screen.getByText(/Order #100/)).toBeTruthy();
@@ -291,7 +291,7 @@ describe("AdminDashboardPage (integration-style)", () => {
     vi.stubGlobal("confirm", vi.fn(() => true));
     deleteProduct.mockResolvedValue({});
 
-    renderPage({ id: 2, username: "seller1", email: "s@test.com", role: "seller" });
+    renderPage({ id: 2, username: "admin1", email: "admin@test.com", role: "admin" });
 
     await waitFor(() => {
       expect(screen.getByText("Mug")).toBeTruthy();

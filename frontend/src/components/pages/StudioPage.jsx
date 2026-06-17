@@ -318,24 +318,24 @@ const StudioPage = () => {
               Create a design and preview it on your selected product.
             </p>
 
-            <div className="mt-6 rounded-borderRadiusMd border border-borderColor bg-black min-h-[520px] p-3">
+            <div className="mt-6 rounded-borderRadiusMd border border-borderColor bg-black min-h-[520px] overflow-hidden">
               {isGenerating ? (
-                <div className="h-full min-h-[496px] flex flex-col items-center justify-center gap-4 text-textColorMuted">
+                <div className="h-full min-h-[520px] flex flex-col items-center justify-center gap-4 text-textColorMuted">
                   <EqualizerLoader size="lg" />
                   <span className="text-sm tracking-wide uppercase text-textColorMuted">
                     Generating design...
                   </span>
                 </div>
               ) : displayImageSrc ? (
-                <div className="relative h-full min-h-[496px] w-full overflow-hidden rounded-borderRadiusMd">
+                <div className="relative h-full min-h-[520px] w-full overflow-hidden rounded-borderRadiusMd">
                   <img
                     src={displayImageSrc}
                     alt={generatedDesign ? "Generated Design" : "Selected Product"}
-                    className={`absolute inset-0 h-full w-full ${generatedDesign ? "object-cover" : "object-contain p-6"}`}
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 </div>
               ) : (
-                <div className="relative h-full min-h-[496px] w-full overflow-hidden rounded-borderRadiusMd bg-[#050505] border border-primaryColor/20 flex items-center justify-center">
+                <div className="relative h-full min-h-[520px] w-full overflow-hidden rounded-borderRadiusMd bg-[#050505] border border-primaryColor/20 flex items-center justify-center">
                   <div className="w-full h-full absolute inset-0 bg-black" />
                   <div className="relative z-10 flex items-center justify-center">
                     <Sparkles size={120} className="text-primaryColor/45" />
@@ -654,7 +654,7 @@ const StudioPage = () => {
                       <img
                         src={getProductImageSrc(product)}
                         alt={product.Product_name}
-                        className="w-full h-full object-contain p-2"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <p className="mt-2 text-sm text-textColorMain line-clamp-1">

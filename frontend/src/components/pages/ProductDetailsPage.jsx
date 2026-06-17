@@ -9,15 +9,16 @@ const PRODUCTS_BASE_URL =
 
 const getProductImageUrl = (product) => {
   if (!product) return "";
-  if (product.product_image) {
-    const img = product.product_image;
-    if (img.startsWith("data:") || img.startsWith("http")) return img;
-    return `data:image/png;base64,${img}`;
+  const img = product.product_image;
+  if (!img) return ""; // No image uploaded
+  if (img === "local" || img === "base64") {
+    const pId = product.product_id ?? product.Product_id ?? product.id;
+    if (pId) {
+      return `${PRODUCTS_BASE_URL}/product/${pId}/image?raw=true`;
+    }
   }
-  if (product.product_id) {
-    return `${PRODUCTS_BASE_URL}/product/${product.product_id}/image?raw=true`;
-  }
-  return "";
+  if (img.startsWith("data:") || img.startsWith("http")) return img;
+  return `data:image/png;base64,${img}`;
 };
 
 const ProductDetailsPage = () => {
@@ -25,30 +26,26 @@ const ProductDetailsPage = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  const [products, setProducts] = useState([]);
+  const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchProduct = async () => {
       try {
         setError("");
-        const data = await productService.getAllProducts();
-        setProducts(Array.isArray(data) ? data : []);
-      } catch {
+        const data = await productService.getProductById(Number(productId));
+        setProduct(data);
+      } catch (err) {
+        console.error("Failed to fetch product:", err);
         setError("Failed to load product details from backend.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
-  }, []);
-
-  const product = useMemo(() => {
-    const numericId = Number(productId);
-    return products.find((item) => item.product_id === numericId);
-  }, [products, productId]);
+    fetchProduct();
+  }, [productId]);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -92,11 +89,11 @@ const ProductDetailsPage = () => {
           Back to home
         </Link>
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="rounded-borderRadiusLg bg-black border border-borderColor p-4 sm:p-6 shadow-boxShadowMedium">
+          <div className="rounded-borderRadiusLg bg-black border border-borderColor overflow-hidden shadow-boxShadowMedium">
             <img
               src={getProductImageUrl(product)}
               alt={product.Product_name}
-              className="w-full h-[420px] object-contain"
+              className="w-full h-[420px] object-cover"
             />
           </div>
           <div className="rounded-borderRadiusLg bg-black border border-borderColor p-5 sm:p-6 flex flex-col gap-4 shadow-boxShadowMedium">

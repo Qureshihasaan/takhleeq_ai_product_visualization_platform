@@ -21,13 +21,9 @@ IMAGE_QUALITY = "high"
 # IMAGE_MODEL="black-forest-labs/flux.2-max"
 
 
-GEMINI_API_KEY : str = os.getenv("GEMINI_API_KEY")
-# GEMINI_MODEL : str = os.getenv("GEMINI_MODEL")
-# GEMINI_IMAGE_MODEL : str = os.getenv("GEMINI_IMAGE_MODEL")
-GEMINI_BASE_URL : str = os.getenv("GEMINI_BASE_URL")
+REPLICATE_API_TOKEN: str = os.getenv("REPLICATE_API_TOKEN")
+REPLICATE_IMAGE_MODEL: str = os.getenv("REPLICATE_IMAGE_MODEL")
 
-FLUX_IMAGE_MODEL : str = os.getenv("FLUX_IMAGE_MODEL")
-IMAGE_PROVIDER: str = os.getenv("IMAGE_PROVIDER", "pollinations").strip().lower()
 
 # --- Kafka ---
 KAFKA_BOOTSTRAP_SERVER: str = os.getenv("KAFKA_BOOTSTRAP_SERVER")
